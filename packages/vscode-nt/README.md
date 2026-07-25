@@ -38,11 +38,11 @@ files, so definitions stay current across the whole workspace.
 **"NT (agent-lang.xyz)"**, and click Install. Or from a terminal:
 
 ```bash
-code --install-extension KartikMehta.nt
+code --install-extension KartikMehta.nt-agent-lang
 ```
 
 **In Cursor, Windsurf, or VSCodium:** install from
-[Open VSX](https://open-vsx.org/extension/KartikMehta/nt) (search
+[Open VSX](https://open-vsx.org/extension/KartikMehta/nt-agent-lang) (search
 "NT (Agent Lang)" in the Extensions view).
 
 Any file ending in `.nt` is picked up automatically.

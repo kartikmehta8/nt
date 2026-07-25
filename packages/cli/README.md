@@ -106,6 +106,6 @@ See the full language and API reference at **https://agent-lang.xyz/docs**.
 Install the **NT** extension for syntax highlighting and IntelliSense (go to
 definition, hover, completion, outline):
 
-- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=KartikMehta.nt)
-- [Open VSX](https://open-vsx.org/extension/KartikMehta/nt) — for Cursor, Windsurf,
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=KartikMehta.nt-agent-lang)
+- [Open VSX](https://open-vsx.org/extension/KartikMehta/nt-agent-lang) — for Cursor, Windsurf,
   and VSCodium

@@ -1,5 +1,5 @@
 {
-  "name": "nt",
+  "name": "nt-agent-lang",
   "displayName": "NT (Agent Lang)",
   "description": "Syntax highlighting and IntelliSense (go-to-definition, hover, completion, outline, references) for NT (.nt) agent-ecosystem files.",
   "version": "0.2.1",
