@@ -1,0 +1,46 @@
+{
+  "name": "@age.nt/engine",
+  "version": "0.1.0",
+  "description": "The NT language and runtime engine: parser, schema, providers, sandboxes, and the agentic session loop.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Kartik Mehta <kartikmehta202@gmail.com>",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "imports": {
+    "#*": "./src/*.ts"
+  },
+  "keywords": [
+    "nt",
+    "ai",
+    "agents",
+    "engine",
+    "llm",
+    "anthropic",
+    "dsl",
+    "parser",
+    "runtime"
+  ],
+  "homepage": "https://github.com/kartikmehta8/nt#readme",
+  "bugs": {
+    "url": "https://github.com/kartikmehta8/nt/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kartikmehta8/nt.git",
+    "directory": "packages/engine"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
