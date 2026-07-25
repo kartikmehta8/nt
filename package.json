@@ -14,6 +14,7 @@
     "nt:graph": "node packages/cli/bin/nt.mjs graph --file example/age.nt",
     "nt:up": "node packages/cli/bin/nt.mjs up --file example/age.nt",
     "nt:chat": "node packages/cli/bin/nt.mjs chat age --file example/age.nt",
+    "nt:audit": "node packages/cli/bin/nt.mjs audit --file example/age.nt",
     "docs:dev": "pnpm --filter @age.nt/docs dev",
     "docs:build": "pnpm --filter @age.nt/docs build",
     "docs:start": "pnpm --filter @age.nt/docs start",

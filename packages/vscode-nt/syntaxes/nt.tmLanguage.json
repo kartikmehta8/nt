@@ -110,7 +110,7 @@
       "end": "'"
     },
     "constant": {
-      "match": "(?<![\\w-])(true|false|null|~)(?![\\w-])",
+      "match": "(?<![\\w./-])(true|false|null|~)(?![\\w./-])",
       "name": "constant.language.nt"
     },
     "number": {

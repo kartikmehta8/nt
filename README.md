@@ -47,7 +47,8 @@ Full guides and reference live in the docs (`apps/docs`, run with
 `pnpm docs:dev`):
 
 - **Get started** — introduction, installation, your first agent
-- **Guides** — agents, tools, skills, sandboxes, subagents, workflows, providers
+- **Guides** — agents, tools, skills, sandboxes, subagents, workflows, providers,
+  the audit log
 - **Reference** — the `.nt` syntax, the full API reference, and CLI commands
 
 ## Development

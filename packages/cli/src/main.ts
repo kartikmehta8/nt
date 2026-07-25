@@ -7,6 +7,7 @@
  */
 
 import { NtError } from "@age.nt/engine";
+import { cmdAudit } from "#audit";
 import { HELP, parseArgs } from "#args";
 import { cmdChat, cmdGraph, cmdList, cmdRun, cmdUp, cmdValidate } from "#commands";
 import { out, red } from "#format";
@@ -40,6 +41,9 @@ export async function main(argv: string[]): Promise<void> {
         break;
       case "chat":
         await cmdChat(args);
+        break;
+      case "audit":
+        cmdAudit(args);
         break;
       default:
         console.error(red(`unknown command '${command}'`));

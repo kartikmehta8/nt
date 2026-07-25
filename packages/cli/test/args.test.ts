@@ -1,6 +1,7 @@
 /**
  * @file Argument-parsing tests: flags requiring values, unknown-flag
- * rejection, and the `--allow-outside-imports` toggle.
+ * rejection, the `--allow-outside-imports` toggle, and the `audit` command's
+ * `--tail` / `--json` options.
  */
 
 import assert from "node:assert/strict";
@@ -44,6 +45,27 @@ test("the path defaults to age.nt and is not marked explicit", () => {
   assert.equal(args.dir, DEFAULT_ENTRY);
   assert.equal(args.explicitPath, false);
   assert.equal(parseArgs(["validate", "--file", "other.nt"]).explicitPath, true);
+});
+
+test("audit accepts --tail and --json", () => {
+  const args = parseArgs(["audit", "--tail", "5", "--json"]);
+  assert.deepEqual(args.positional, ["audit"]);
+  assert.equal(args.tail, 5);
+  assert.equal(args.json, true);
+  assert.equal(parseArgs(["audit", "-n", "3"]).tail, 3);
+});
+
+test("--tail rejects values that are not positive whole numbers", () => {
+  for (const value of ["0", "2.5", "many"])
+    assert.throws(() => parseArgs(["audit", "--tail", value]), /positive whole number/);
+  assert.throws(() => parseArgs(["audit", "--tail"]), /--tail requires a value/);
+  assert.throws(() => parseArgs(["audit", "--tail", "-2"]), /--tail requires a value/);
+});
+
+test("tail is unset and json is false by default", () => {
+  const args = parseArgs(["audit"]);
+  assert.equal(args.tail, undefined);
+  assert.equal(args.json, false);
 });
 
 test("resolveEntry returns the path when it exists", () => {

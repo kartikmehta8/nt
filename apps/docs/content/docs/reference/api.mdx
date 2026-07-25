@@ -64,12 +64,13 @@ Several places accept a `thinking` level. From least to most effort:
 
 Project-wide settings. One `config` block per project.
 
-| Field       | Type   | Values / default                                   |
-| ----------- | ------ | -------------------------------------------------- |
-| `target`    | string | Defaults to `node`.                                |
-| `entry`     | string | The agent or workflow `nt up` runs. No default.    |
-| `defaults`  | map    | Shared defaults for every agent (see below).       |
-| `providers` | map    | Named provider blocks (see [provider](#provider)). |
+| Field       | Type   | Values / default                                                          |
+| ----------- | ------ | ------------------------------------------------------------------------- |
+| `target`    | string | Defaults to `node`.                                                       |
+| `entry`     | string | The agent or workflow `nt up` runs. No default.                           |
+| `audit`     | string | `off`, or the folder tool calls are logged to. Defaults to `~/.nt/audit`. |
+| `defaults`  | map    | Shared defaults for every agent (see below).                              |
+| `providers` | map    | Named provider blocks (see [provider](#provider)).                        |
 
 ### config.defaults
 
@@ -84,6 +85,7 @@ Project-wide settings. One `config` block per project.
 config
   target: node
   entry: age
+  audit: ~/.nt/audit
   defaults:
     model: anthropic/claude-sonnet-5
     sandbox: workspace
@@ -94,6 +96,24 @@ config
       api: anthropic
       api_key: env(ANTHROPIC_API_KEY)
 ```
+
+### config.audit
+
+Two forms, and nothing else: a folder, or `off`.
+
+| Value                                    | Meaning                                                |
+| ---------------------------------------- | ------------------------------------------------------ |
+| A folder path                            | Append every tool call to a daily `.jsonl` file there. |
+| `off`, `none`, `disabled`, `no`, `false` | Log nothing.                                           |
+| `on`, `yes`, `true`, `default`           | Log to the default folder, `~/.nt/audit`.              |
+
+A leading `~` expands to the home folder; a relative folder resolves against the
+`.nt` file that declared it. A map, a list, or an `env()` reference is an error.
+
+Each line records the time, run id, agent, delegation depth, tool, tool kind,
+input, success, duration, and output — with credentials redacted. Read them back
+with [`nt audit`](/docs/reference/cli#inspecting-the-audit-log), and see
+[Audit the tool calls](/docs/guides/audit) for the full field list.
 
 ---
 
@@ -308,11 +328,13 @@ import ./subagents
 
 Handy values built into the engine:
 
-| Name                    | Value        |
-| ----------------------- | ------------ |
-| Default `thinking`      | `medium`     |
-| Default `max_tokens`    | `8000`       |
-| Default sandbox `cwd`   | `/workspace` |
-| Max steps per agent run | `12`         |
-| Max delegation depth    | `6`          |
-| HTTP tool timeout       | 30 seconds   |
+| Name                    | Value                    |
+| ----------------------- | ------------------------ |
+| Default `thinking`      | `medium`                 |
+| Default `max_tokens`    | `8000`                   |
+| Default sandbox `cwd`   | `/workspace`             |
+| Default `audit` folder  | `~/.nt/audit`            |
+| Audit file name         | `tools-YYYY-MM-DD.jsonl` |
+| Max steps per agent run | `12`                     |
+| Max delegation depth    | `6`                      |
+| HTTP tool timeout       | 30 seconds               |

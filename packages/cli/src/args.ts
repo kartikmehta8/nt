@@ -2,8 +2,8 @@
  * @file Command-line argument parsing and help text.
  *
  * Parses flags into `Args` (the `--file`/`--dir` path, `--input`/`--message`,
- * `--run`, `--verbose`), derives the run input from `--input` JSON or the
- * `--message` shorthand, and holds the `--help` text.
+ * `--run`, `--tail`, `--json`, `--verbose`), derives the run input from `--input`
+ * JSON or the `--message` shorthand, and holds the `--help` text.
  */
 
 import * as fs from "node:fs";
@@ -19,6 +19,8 @@ export interface Args {
   input?: string;
   message?: string;
   run?: string;
+  tail?: number;
+  json: boolean;
   verbose: boolean;
   allowOutsideImports: boolean;
 }
@@ -35,6 +37,7 @@ COMMANDS
   up                  Bring up the ecosystem (sandboxes + providers); run entry
   run <name>          Run an agent, subagent, or workflow once
   chat <name>         Interactively chat with an agent (multi-turn, keeps history)
+  audit               Show where tool calls are logged and the recent entries
 
 OPTIONS
   -f, --file FILE     Entry .nt file to load; its imports are followed
@@ -43,6 +46,8 @@ OPTIONS
   -i, --input JSON    JSON object passed as the run input
   -m, --message TEXT  Shorthand for --input '{"message": TEXT}'
       --run NAME      With 'up': run this agent/workflow after bring-up
+  -n, --tail N        With 'audit': how many recent entries to show (default 20)
+      --json          With 'audit': print the raw JSONL entries only
       --allow-outside-imports  Permit imports outside the project directory
   -v, --verbose       Print the agent/tool trace to stderr
   -h, --help          Show this help
@@ -63,6 +68,20 @@ function requireValue(argv: string[], flag: string, i: number): string {
 
 /**
  * @param argv The arguments after the command name.
+ * @param flag The flag currently being parsed, for the error message.
+ * @param i The index of the flag; its value is expected at `i + 1`.
+ * @returns The value token following the flag, parsed as a positive whole number.
+ */
+function requireCount(argv: string[], flag: string, i: number): number {
+  const value = requireValue(argv, flag, i);
+  const count = Number(value);
+  if (!Number.isInteger(count) || count <= 0)
+    throw new NtError(`${flag} requires a positive whole number, got '${value}'`, null);
+  return count;
+}
+
+/**
+ * @param argv The arguments after the command name.
  * @returns The parsed argument set.
  */
 export function parseArgs(argv: string[]): Args {
@@ -70,6 +89,7 @@ export function parseArgs(argv: string[]): Args {
     positional: [],
     dir: DEFAULT_ENTRY,
     explicitPath: false,
+    json: false,
     verbose: false,
     allowOutsideImports: false,
   };
@@ -84,6 +104,8 @@ export function parseArgs(argv: string[]): Args {
     } else if (arg === "--input" || arg === "-i") args.input = requireValue(argv, arg, i++);
     else if (arg === "--message" || arg === "-m") args.message = requireValue(argv, arg, i++);
     else if (arg === "--run") args.run = requireValue(argv, arg, i++);
+    else if (arg === "--tail" || arg === "-n") args.tail = requireCount(argv, arg, i++);
+    else if (arg === "--json") args.json = true;
     else if (arg === "--allow-outside-imports") args.allowOutsideImports = true;
     else if (arg === "--verbose" || arg === "-v") args.verbose = true;
     else if (arg === "--help" || arg === "-h") args.positional.push("help");

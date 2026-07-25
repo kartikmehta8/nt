@@ -66,9 +66,10 @@ nt chat age
 | `nt up`          | Bring the ecosystem up, then run the default entry.      |
 | `nt run <name>`  | Run one agent, subagent, or workflow.                    |
 | `nt chat <name>` | Chat with an agent, back and forth.                      |
+| `nt audit`       | Show where tool calls are logged, and the recent ones.   |
 
-`validate`, `list`, and `graph` work offline; `up`, `run`, and `chat` call the
-model and need a provider key.
+`validate`, `list`, `graph`, and `audit` work offline; `up`, `run`, and `chat`
+call the model and need a provider key.
 
 ## Options
 
@@ -79,6 +80,8 @@ model and need a provider key.
 | `-i, --input JSON`   | Input to pass, as JSON (validated against the agent's `input`).       |
 | `-m, --message TEXT` | Send a quick plain-text message instead of JSON.                      |
 | `--run NAME`         | With `up`, run this agent or workflow after bring-up.                 |
+| `-n, --tail N`       | With `audit`, how many recent tool calls to show (default 20).        |
+| `--json`             | With `audit`, print the raw JSONL entries only.                       |
 | `-v, --verbose`      | Print the agent / tool / delegation trace.                            |
 | `-h, --help`         | Show help.                                                            |
 
@@ -96,7 +99,8 @@ An `.nt` file is made of small, readable blocks:
   one for real host access.
 - **`workflow`** — an ordered pipeline of steps that pass results forward.
 - **`provider`** — the model backend (`anthropic` or any OpenAI-compatible API).
-- **`config`** — project defaults and the entry to run.
+- **`config`** — project defaults, the entry to run, and where tool calls are
+  audited (`audit: <folder>` or `audit: off`).
 - **`import`** — split a project across files and pull them together.
 
 See the full language and API reference at **https://agent-lang.xyz/docs**.

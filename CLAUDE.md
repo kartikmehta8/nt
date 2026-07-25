@@ -81,12 +81,19 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 - **Four phases, in order:** load (discover `.nt`, parse to blocks in `parse/`)
   → build (`schema/`: coerce → declarations → build → validate into a typed
   `Project`, validating references and collecting warnings) → bring up
-  (instantiate sandboxes, check provider credentials) → run (`session.ts`: the
-  agentic tool-use loop plus delegation).
+  (`status.ts`: instantiate sandboxes, check provider credentials, report the
+  audit destination) → run (`runtime.ts` resolves the per-run context, model and
+  prompt; `session.ts` drives the agentic tool-use loop plus delegation).
 - **`constants.ts` is the single source of truth** for built-in tool names
   (`fs_read`, `fs_write`, `fs_list`, `bash`), thinking levels, and the
   defaults/limits (`DEFAULT_MAX_TOKENS`, `MAX_AGENT_STEPS` = 12,
-  `MAX_DELEGATION_DEPTH` = 6, `HTTP_TOOL_TIMEOUT_MS`, …). Never duplicate these.
+  `MAX_DELEGATION_DEPTH` = 6, `HTTP_TOOL_TIMEOUT_MS`, `DEFAULT_AUDIT_DIR`, …).
+  Never duplicate these.
+- **`audit/` writes the tool-call log**: `config.ts` resolves `config.audit`
+  (`off` or a folder) into `AuditConfig`, `redact.ts` strips credentials, and
+  `log.ts` appends one JSONL line per tool call plus the reader `nt audit` uses.
+  The session loop records every dispatch; a failing write degrades to one
+  warning and never breaks a run.
 - **Errors are `NtError(message, loc)`** with a source `Location` attached by the
   parser/loader. One parser per block kind in `schema/declarations.ts`; unknown
   fields are reported via `warnUnknown`, never silently accepted.
@@ -102,6 +109,9 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
   literal — is flagged by `nt validate`; keys must never land in a file.
 - **`http` tools cannot reach private/localhost addresses** unless the tool sets
   `allow_internal: true`.
+- **Every tool call is appended to `~/.nt/audit`** as JSONL with credentials
+  redacted, unless `config.audit` names another folder or is set to `off`. The
+  folder is created owner-only (0700) and files 0600; lines are only appended.
 - **Imports must resolve inside the project directory** unless
   `--allow-outside-imports` is passed. Loading also enforces file-size, file-count,
   and parse-depth limits from `constants.ts` for untrusted input.
@@ -109,11 +119,11 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 ### CLI (packages/cli)
 
 - Thin layer over `@age.nt/engine`: `args.ts` (flags + help), `commands.ts`
-  (`validate` / `list` / `graph` / `up` / `run` / `chat`), `format.ts` (colored
-  output), `main.ts`; `bin/nt.mjs` is the launcher.
+  (`validate` / `list` / `graph` / `up` / `run` / `chat`), `audit.ts` (`audit`),
+  `format.ts` (colored output), `main.ts`; `bin/nt.mjs` is the launcher.
 - **Defaults to `./age.nt` in the current directory**; `--file` / `--dir`
   override. `up` / `run` / `chat` call the model (need `ANTHROPIC_API_KEY`);
-  `validate` / `list` / `graph` are offline.
+  `validate` / `list` / `graph` / `audit` are offline.
 
 ### VS Code extension (packages/vscode-nt)
 

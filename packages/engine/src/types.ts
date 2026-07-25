@@ -4,9 +4,9 @@
  * Declares the parsed value model (`NtValue`, `EnvRef`), the raw `Block` a file
  * parses into, and the typed definitions the schema layer produces (`AgentDef`
  * — used for both agents and subagents, `SandboxDef`, `ToolDef`, `SkillDef`,
- * `WorkflowDef`, `ProviderDef`, `ConfigDef`), plus the assembled `Project` and
- * the `RunResult` / `TokenUsage` shapes the engine returns. Types only; the
- * entire module is erased at runtime.
+ * `WorkflowDef`, `ProviderDef`, `ConfigDef`, `AuditConfig`), plus the assembled
+ * `Project` and the `RunResult` / `TokenUsage` shapes the engine returns. Types
+ * only; the entire module is erased at runtime.
  */
 
 export type Scalar = string | number | boolean | null;
@@ -133,10 +133,16 @@ export interface ConfigDefaults {
   maxTokens: number | null;
 }
 
+export interface AuditConfig {
+  enabled: boolean;
+  dir: string;
+}
+
 export interface ConfigDef {
   target: string;
   entry: string | null;
   defaults: ConfigDefaults;
+  audit: AuditConfig;
   loc: Location | null;
 }
 

@@ -14,7 +14,7 @@ import {
   interpolateUrl,
   shellQuote,
 } from "#io";
-import { parseStructuredOutput } from "#session";
+import { parseStructuredOutput } from "#runtime";
 
 test("interpolate substitutes raw values and keeps unknown placeholders", () => {
   assert.equal(interpolate("hi {name}, {missing}", { name: "x" }), "hi x, {missing}");

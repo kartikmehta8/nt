@@ -62,13 +62,15 @@ warnings.forEach((w) => console.warn(w));
 
 Everything is exported from the package barrel:
 
-| Export            | What it is                                                 |
-| ----------------- | ---------------------------------------------------------- |
-| `Engine`          | Load a project and run agents / workflows, or bring it up. |
-| `loadProject`     | Parse + build + validate into a typed `Project` (offline). |
-| `discoverNtFiles` | Find every `.nt` file under a directory.                   |
-| `ChatSession`     | Stateful, multi-turn conversation with an agent.           |
-| `NtError`         | Error type carrying a source `Location`.                   |
+| Export             | What it is                                                 |
+| ------------------ | ---------------------------------------------------------- |
+| `Engine`           | Load a project and run agents / workflows, or bring it up. |
+| `loadProject`      | Parse + build + validate into a typed `Project` (offline). |
+| `discoverNtFiles`  | Find every `.nt` file under a directory.                   |
+| `ChatSession`      | Stateful, multi-turn conversation with an agent.           |
+| `readAuditEntries` | Read recent tool-call entries out of an audit folder.      |
+| `auditFiles`       | List the audit log files in a folder, oldest first.        |
+| `NtError`          | Error type carrying a source `Location`.                   |
 
 ## Security defaults
 
@@ -78,5 +80,8 @@ Everything is exported from the package barrel:
   read from `env(NAME)`, never stored in files.
 - **`http` tools cannot reach private/localhost addresses** unless explicitly
   allowed.
+- **Every tool call is audited** — appended as JSONL to `~/.nt/audit` (owner-only
+  permissions) with credentials redacted. Point `config.audit` at another folder,
+  or set `audit: off` to disable it.
 
 See the full language and API reference at **https://agent-lang.xyz/docs**.

@@ -9,13 +9,8 @@
 
 import type { LlmMessage } from "#provider";
 import type { Sandbox } from "#sandbox";
-import {
-  buildRuntime,
-  driveConversation,
-  parseStructuredOutput,
-  type AgentRuntime,
-  type RunContext,
-} from "#session";
+import { buildRuntime, parseStructuredOutput, type AgentRuntime, type RunContext } from "#runtime";
+import { driveConversation } from "#session";
 import type { AgentDef, RunResult } from "#types";
 
 export class ChatSession {

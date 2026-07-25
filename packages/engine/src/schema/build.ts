@@ -1,11 +1,13 @@
 /**
  * @file Assembles parsed blocks from every file into one validated `Project`.
  *
- * Applies the `config` block (defaults plus nested providers), registers each
- * declaration while rejecting duplicate names, then runs cross-reference
- * validation. Returns the project together with any accumulated warnings.
+ * Applies the `config` block (defaults, the audit destination, and nested
+ * providers), registers each declaration while rejecting duplicate names, then
+ * runs cross-reference validation. Returns the project together with any
+ * accumulated warnings.
  */
 
+import { defaultAuditConfig, parseAuditConfig } from "#audit/config";
 import { NtError } from "#errors";
 import { isMap, optNum, optStr, parseThinking } from "#schema/coerce";
 import {
@@ -38,6 +40,7 @@ function emptyProject(files: string[]): Project {
       target: "node",
       entry: null,
       defaults: { model: null, sandbox: null, thinking: null, maxTokens: null },
+      audit: defaultAuditConfig(),
       loc: null,
     },
     providers: new Map(),
@@ -86,6 +89,7 @@ function applyConfig(
   config.loc = loc;
   config.target = optStr(body.target, "config.target", loc) ?? config.target;
   config.entry = optStr(body.entry, "config.entry", loc) ?? config.entry;
+  if (body.audit !== undefined) config.audit = parseAuditConfig(body.audit, loc);
   if (body.defaults !== undefined) {
     const d = body.defaults;
     if (!isMap(d)) throw new NtError("config.defaults must be a map", loc);

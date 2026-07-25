@@ -141,6 +141,13 @@ export async function cmdUp(args: Args): Promise<void> {
       `  ${p.hasKey ? green("●") : yellow("○")} ${p.name} ${dim("(" + p.api + ")")} ${p.hasKey ? green("key found") : yellow("no key")}`,
     );
 
+  out(bold("\nAudit log"));
+  out(
+    status.audit.enabled
+      ? `  ${green("●")} ${status.audit.file} ${dim("(every tool call, secrets redacted)")}`
+      : `  ${yellow("○")} ${dim("off — tool calls are not logged")}`,
+  );
+
   out(bold("\nAgents ready"));
   for (const a of project.agents.values())
     out(

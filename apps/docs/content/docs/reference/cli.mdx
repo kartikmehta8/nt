@@ -28,6 +28,7 @@ nt <command> [options]
 | `nt up`          | Get everything ready, then run your default agent.       |
 | `nt run <name>`  | Run one agent, subagent, or workflow.                    |
 | `nt chat <name>` | Chat with an agent, back and forth.                      |
+| `nt audit`       | Show where tool calls are logged, and the recent ones.   |
 
 ## Options
 
@@ -38,6 +39,8 @@ nt <command> [options]
 | `-i, --input JSON`   | The input to give, written as JSON.                                          |
 | `-m, --message TEXT` | A quick way to send plain text instead of JSON.                              |
 | `--run NAME`         | With `up`, run this agent or workflow after setup.                           |
+| `-n, --tail N`       | With `audit`, how many recent calls to show. Defaults to 20.                 |
+| `--json`             | With `audit`, print the raw JSONL lines and nothing else.                    |
 | `-v, --verbose`      | Show extra detail about what the agent is doing.                             |
 | `-h, --help`         | Show help.                                                                   |
 
@@ -87,7 +90,32 @@ age › what if it was the iPhone 15?
 age › exit
 ```
 
+## Inspecting the audit log
+
+Every tool call your agents make is appended to a log file. `nt audit` shows
+where that file is and what is in it:
+
+```bash
+nt audit                # the folder, plus the last 20 calls
+nt audit --tail 100     # the last 100 calls
+nt audit --json         # raw JSONL, for piping into jq
+```
+
+```text
+$ nt audit
+Audit log
+  ● on · config.audit
+  folder: /Users/you/.nt/audit
+
+Last 2 tool call(s)
+  ● 2026-07-25T10:14:01.204Z age → current_year({}) [custom · 2ms]
+  ● 2026-07-25T10:14:02.881Z age → fs_write({"path":"notes.md"}) [builtin · 3ms]
+```
+
+Set `audit` in your `config` block to change the folder or turn logging off. See
+[Audit the tool calls](/docs/guides/audit).
+
 <Callout title="Which commands need an AI key">
   `up`, `run`, and `chat` talk to a real model, so they need your key set (for example
-  `ANTHROPIC_API_KEY`). `validate`, `list`, and `graph` do not.
+  `ANTHROPIC_API_KEY`). `validate`, `list`, `graph`, and `audit` do not.
 </Callout>

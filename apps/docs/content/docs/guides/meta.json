@@ -1,4 +1,13 @@
 {
   "title": "How-To Guides",
-  "pages": ["agents", "tools", "skills", "sandboxes", "subagents", "workflows", "providers"]
+  "pages": [
+    "agents",
+    "tools",
+    "skills",
+    "sandboxes",
+    "subagents",
+    "workflows",
+    "providers",
+    "audit"
+  ]
 }

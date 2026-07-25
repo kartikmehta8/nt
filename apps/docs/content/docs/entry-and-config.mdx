@@ -99,6 +99,7 @@ agents share, which agent to run by default, and the AI provider.
 ```yaml title="config.nt"
 config
   entry: age
+  audit: ~/.nt/audit
   defaults:
     model: anthropic/claude-sonnet-5
     thinking: medium
@@ -113,6 +114,26 @@ config
 
 The name of the agent (or workflow) to run when you type `nt up`. In the example
 above, that is the `age` agent.
+
+### audit
+
+Where to record every tool call your agents make. It takes one of two values:
+
+| Value         | What happens                                                     |
+| ------------- | ---------------------------------------------------------------- |
+| A folder path | Tool calls are appended to a daily `.jsonl` file in that folder. |
+| `off`         | Nothing is logged.                                               |
+
+Leave it out and NT logs to `~/.nt/audit`. A `~` means your home folder, and a
+relative path such as `./logs` is measured from the file that declares it.
+
+```yaml
+config
+  audit: off # no logging at all
+```
+
+Read the log back with `nt audit`. Secrets are removed before anything is
+written — see [Audit the tool calls](/docs/guides/audit).
 
 ### defaults
 
@@ -149,5 +170,10 @@ still list the one you use here so NT knows your key. See
     title="Connect a model"
     href="/docs/guides/providers"
     description="Set up Claude, OpenAI, or a local model."
+  />
+  <Card
+    title="Audit the tool calls"
+    href="/docs/guides/audit"
+    description="See what your agents did, and where that record is kept."
   />
 </Cards>

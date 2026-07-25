@@ -1,0 +1,147 @@
+---
+title: Audit the tool calls
+description: Every tool your agents call is written to a log file, secrets removed. Here is where it lives and how to turn it off.
+---
+
+<img src="/audit-the-tool-calls.png" alt="Audit the tool calls" className="nt-banner" />
+
+Agents act on your behalf: they write files, run commands, call APIs, and hand
+work to subagents. NT keeps a record of all of it. Every tool call is appended to
+a plain-text log file so you can see exactly what happened after a run — and
+prove it later.
+
+The log is **on by default** and needs no setup.
+
+## Where it lives
+
+One file per day, in `~/.nt/audit`:
+
+```text
+~/.nt/audit/tools-2026-07-25.jsonl
+```
+
+Each line is one tool call, written as JSON. NT only ever appends to these files;
+it never rewrites or reorders what is already there.
+
+```json
+{
+  "ts": "2026-07-25T10:14:02.881Z",
+  "run": "3f2c8e6d-8a4b-4d21-9d0e-6c1f9b7a2e55",
+  "agent": "age",
+  "depth": 0,
+  "tool": "fs_write",
+  "kind": "builtin",
+  "input": { "path": "notes.md", "content": "First iPhone: 2007." },
+  "ok": true,
+  "duration_ms": 3,
+  "output": "wrote notes.md"
+}
+```
+
+| Field         | What it tells you                                           |
+| ------------- | ----------------------------------------------------------- |
+| `ts`          | When the call finished, in UTC.                             |
+| `run`         | One id per run, so you can group a whole run together.      |
+| `agent`       | Which agent or subagent made the call.                      |
+| `depth`       | How deep the delegation went: `0` is your top-level agent.  |
+| `tool`        | The tool name that was called.                              |
+| `kind`        | `builtin`, `custom`, `delegate`, or `unknown`.              |
+| `input`       | The arguments the model chose, with secrets removed.        |
+| `ok`          | Whether the call succeeded.                                 |
+| `duration_ms` | How long it took.                                           |
+| `output`      | What the tool returned, shortened and with secrets removed. |
+
+## Reading the log
+
+`nt audit` shows where the log lives and the most recent calls:
+
+```text
+$ nt audit
+Audit log
+  ● on · config.audit
+  folder: /Users/you/.nt/audit
+
+Last 3 tool call(s)
+  ● 2026-07-25T10:14:01.204Z age → current_year({}) [custom · 2ms]
+  ● 2026-07-25T10:14:01.560Z   researcher → bash({"command":"date +%Y"}) [builtin · 5ms]
+  ● 2026-07-25T10:14:02.881Z age → fs_write({"path":"notes.md"}) [builtin · 3ms]
+```
+
+Ask for more or fewer lines with `--tail`, or get the raw JSON back with
+`--json`:
+
+```bash
+nt audit --tail 100
+nt audit --json | jq 'select(.ok == false)'
+```
+
+## Choosing a folder
+
+Set `audit` in your `config` block to any folder you like. `~` means your home
+folder, and a relative path is measured from the file that declares it — never
+from wherever you happen to be standing:
+
+```yaml title="config.nt"
+config
+  audit: ~/.nt/audit # the default
+```
+
+```yaml
+config
+  audit: ./logs/audit # a folder inside the project
+```
+
+NT creates the folder the first time it writes, readable only by you.
+
+## Turning it off
+
+Set `audit` to `off`:
+
+```yaml title="config.nt"
+config
+  audit: off
+```
+
+Nothing is written after that, and existing files are left untouched. `off`,
+`none`, `disabled`, `no`, and `false` all work. To turn it back on, use `on` or
+name a folder.
+
+<Callout title="Two settings, one field">
+  `audit` is either **off** or **the folder to write to**. There is nothing else to configure.
+</Callout>
+
+## What gets removed
+
+Tool inputs are model-chosen and tool output can echo anything, so NT strips
+credentials before a line is written:
+
+- Values under a secret-looking name (`api_key`, `token`, `password`,
+  `authorization`, `cookie`, and friends) are replaced with `[redacted]`.
+- Your project's provider keys, secret sandbox `env` values, and secret-named
+  environment variables are scrubbed wherever they appear in text — including
+  inside a command or a URL.
+- Values shaped like a token (`sk-…`, `ghp_…`, `AKIA…`, a JWT, `Bearer …`) are
+  matched by shape, even under a harmless name.
+
+Long values are shortened so one big file read cannot bloat the log.
+
+<Callout type="warn" title="Redaction is a safety net, not a promise">
+  NT removes what it can recognize. A secret with an unusual name and an unusual shape can still
+  reach the log, so treat the folder as sensitive — and prefer `env(NAME)` over literals so NT knows
+  what to look for.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card
+    title="Files & configuration"
+    href="/docs/entry-and-config"
+    description="Every setting the config block holds."
+  />
+  <Card
+    title="CLI commands"
+    href="/docs/reference/cli"
+    description="nt audit and every other command."
+  />
+</Cards>

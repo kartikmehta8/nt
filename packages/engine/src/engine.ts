@@ -1,12 +1,14 @@
 /**
  * @file The engine that resolves definitions and runs the ecosystem.
  *
- * Loads a `Project`, registers its providers, and resolves each agent's model
- * and sandbox. Exposes the surface the CLI drives: `runAgent`, `runWorkflow`,
- * `createChat`, and `bringUp` (instantiate declared sandboxes and report
- * provider credential status).
+ * Loads a `Project`, registers its providers, opens the tool-call audit log, and
+ * resolves each agent's model and sandbox. Exposes the surface the CLI drives:
+ * `runAgent`, `runWorkflow`, `createChat`, and `bringUp`, whose report is
+ * assembled in `status.ts`.
  */
 
+import { randomUUID } from "node:crypto";
+import { openAuditLog, type AuditLog } from "#audit/log";
 import { ChatSession } from "#chat";
 import { DEFAULT_SANDBOX_CWD } from "#constants";
 import { NtError } from "#errors";
@@ -14,51 +16,27 @@ import { interpolate, validateInput } from "#io";
 import { loadProject } from "#loader";
 import { ProviderRegistry } from "#provider";
 import { makeSandbox, type Sandbox } from "#sandbox";
-import { buildUserMessage, resolveModel, runSession, type RunContext } from "#session";
+import { auditStatus, bringUpStatus, type AuditStatus, type EcosystemStatus } from "#status";
+import { buildUserMessage, resolveModel, type RunContext } from "#runtime";
+import { runSession } from "#session";
 import type { BuildResult } from "#schema/build";
 import type { AgentDef, FieldSpec, Location, Project, RunResult, SandboxDef } from "#types";
 
 export type RunnableKind = "agent" | "subagent" | "workflow";
-
-export interface SandboxStatus {
-  name: string;
-  kind: string;
-  cwd: string;
-  ok: boolean;
-  error?: string;
-}
-
-export interface ProviderStatus {
-  name: string;
-  api: string;
-  hasKey: boolean;
-}
-
-export interface EcosystemStatus {
-  sandboxes: SandboxStatus[];
-  providers: ProviderStatus[];
-}
-
-/**
- * @param model A `provider/model-id` string (validated to contain a slash at load time).
- * @returns The provider id before the first slash, or the whole string when no slash is present.
- */
-function providerIdOf(model: string): string {
-  const slash = model.indexOf("/");
-  return slash > 0 ? model.slice(0, slash) : model;
-}
 
 export class Engine {
   readonly project: Project;
   readonly warnings: string[];
   private registry = new ProviderRegistry();
   private log: (line: string) => void;
+  private audit: AuditLog | null;
 
   constructor(loaded: BuildResult, opts?: { verbose?: boolean }) {
     this.project = loaded.project;
     this.warnings = loaded.warnings;
     for (const provider of this.project.providers.values()) this.registry.register(provider);
     this.log = opts?.verbose ? (line) => process.stderr.write(line + "\n") : () => {};
+    this.audit = openAuditLog(this.project);
   }
 
   /**
@@ -120,6 +98,7 @@ export class Engine {
 
     const vars: Record<string, unknown> = { ...input };
     const usage = { input: 0, output: 0 };
+    const context = this.context();
     let steps = 0;
     let lastText = "";
 
@@ -128,7 +107,7 @@ export class Engine {
       const base = step.prompt ? interpolate(step.prompt, vars) : buildUserMessage(agent, vars);
       const prompt = step.skill ? this.applySkill(step.skill, base) : base;
       const result = await runSession(
-        this.context(),
+        context,
         agent,
         { message: prompt },
         this.makeSandboxFor(agent),
@@ -150,24 +129,27 @@ export class Engine {
   }
 
   /**
-   * @returns The instantiated sandboxes and provider credential status.
+   * @returns The instantiated sandboxes, provider credential status, and audit destination.
    */
   bringUp(): EcosystemStatus {
-    const sandboxes = [...this.project.sandboxes.values()].map((def) => this.probeSandbox(def));
-    const providerIds = new Set<string>(this.project.providers.keys());
-    for (const agent of [...this.project.agents.values(), ...this.project.subagents.values()]) {
-      const model = agent.model ?? this.project.config.defaults.model;
-      if (model) providerIds.add(providerIdOf(model));
-    }
-    const providers = [...providerIds].map((id) => {
-      const status = this.registry.credentialStatus(id);
-      return { name: id, api: status.provider.api, hasKey: status.hasKey };
-    });
-    return { sandboxes, providers };
+    return bringUpStatus(this.project, this.registry, this.audit);
+  }
+
+  /**
+   * @returns Whether tool calls are being logged, where, and today's log file.
+   */
+  auditStatus(): AuditStatus {
+    return auditStatus(this.project, this.audit);
   }
 
   private context(): RunContext {
-    return { project: this.project, registry: this.registry, log: this.log };
+    return {
+      project: this.project,
+      registry: this.registry,
+      log: this.log,
+      audit: this.audit,
+      runId: randomUUID(),
+    };
   }
 
   /**
@@ -204,21 +186,6 @@ export class Engine {
           loc: agent.loc,
         };
     return makeSandbox(def);
-  }
-
-  private probeSandbox(def: SandboxDef): SandboxStatus {
-    try {
-      const sandbox = makeSandbox(def);
-      return { name: def.name, kind: sandbox.kind, cwd: sandbox.cwd, ok: true };
-    } catch (e) {
-      return {
-        name: def.name,
-        kind: def.type,
-        cwd: def.cwd,
-        ok: false,
-        error: (e as Error).message,
-      };
-    }
   }
 
   private resolveWorkflowAgent(workflow: string, agentName: string | null): AgentDef {

@@ -3,6 +3,9 @@
 config
   target: node
   entry: age
+  # Every tool call is appended to a JSONL file in this folder, secrets
+  # redacted. Set `audit: off` to turn the log off entirely.
+  audit: ~/.nt/audit
   defaults:
     model: anthropic/claude-sonnet-5
     sandbox: workspace
