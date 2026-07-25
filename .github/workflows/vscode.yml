@@ -1,0 +1,49 @@
+name: Release (VS Code extension)
+
+# Publishes the vscode-nt extension when a tag like vscode-vX.Y.Z is pushed.
+# Packages the .vsix once, then publishes it to:
+#   - the VS Code Marketplace (requires the VSCE_PAT secret)
+#   - Open VSX          (only if the OVSX_PAT secret is set)
+
+on:
+  push:
+    tags:
+      - "vscode-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish-extension:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vscode-nt
+    # Lifted to job level so it is visible to step-level `if:` conditions;
+    # a step's own `env:` block is NOT available to that step's `if:`.
+    env:
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+
+      - name: Package extension
+        run: npx --yes @vscode/vsce package --no-dependencies
+
+      - name: Publish to VS Code Marketplace
+        run: npx --yes @vscode/vsce publish --no-dependencies --packagePath *.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Ensure Open VSX namespace exists
+        if: ${{ env.OVSX_PAT != '' }}
+        run: |
+          PUBLISHER=$(node -p "require('./package.json').publisher")
+          npx --yes ovsx create-namespace "$PUBLISHER" --pat "$OVSX_PAT" || \
+            echo "Namespace '$PUBLISHER' already exists, continuing."
+
+      - name: Publish to Open VSX
+        if: ${{ env.OVSX_PAT != '' }}
+        run: npx --yes ovsx publish *.vsix --pat "$OVSX_PAT"

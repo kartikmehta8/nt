@@ -1,0 +1,54 @@
+{
+  "name": "nt",
+  "version": "0.1.0",
+  "description": "NT — a declarative .nt language and engine for spinning up ecosystems of AI agents, subagents, sandboxes, tools, skills and workflows.",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "nt:validate": "node packages/cli/bin/nt.mjs validate --file example/age.nt",
+    "nt:list": "node packages/cli/bin/nt.mjs list --file example/age.nt",
+    "nt:graph": "node packages/cli/bin/nt.mjs graph --file example/age.nt",
+    "nt:up": "node packages/cli/bin/nt.mjs up --file example/age.nt",
+    "nt:chat": "node packages/cli/bin/nt.mjs chat age --file example/age.nt",
+    "docs:dev": "pnpm --filter @age.nt/docs dev",
+    "docs:build": "pnpm --filter @age.nt/docs build",
+    "docs:start": "pnpm --filter @age.nt/docs start",
+    "format": "prettier --write .",
+    "test": "node --test \"packages/engine/test/*.test.ts\" \"packages/cli/test/*.test.ts\"",
+    "typecheck": "tsc -p packages/engine/tsconfig.json && tsc -p packages/cli/tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,mts,mjs,js}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.1",
+    "eslint": "^10.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.65.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@orama/orama": "3.1.14"
+    }
+  }
+}

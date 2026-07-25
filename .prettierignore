@@ -1,0 +1,8 @@
+node_modules/
+dist/
+pnpm-lock.yaml
+*.vsix
+packages/vscode-nt/syntaxes/
+apps/docs/.next/
+apps/docs/.source/
+apps/docs/next-env.d.ts

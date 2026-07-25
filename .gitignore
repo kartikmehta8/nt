@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.vsix
+*.local.ts
+*.local.mts
+*.local.nt
+.DS_Store
+.env
+.env.*
+*.pem
+*.key

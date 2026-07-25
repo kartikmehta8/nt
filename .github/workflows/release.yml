@@ -1,0 +1,56 @@
+name: Release (npm)
+
+# Publishes the npm packages when a matching tag is pushed:
+#   engine-vX.Y.Z  -> @age.nt/engine
+#   cli-vX.Y.Z     -> @age.nt/nt
+# Publish @age.nt/engine BEFORE @age.nt/nt, since the CLI's `workspace:*`
+# dependency is rewritten to the engine's published version at pack time.
+
+on:
+  push:
+    tags:
+      - "engine-v*"
+      - "cli-v*"
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance
+
+jobs:
+  publish-engine:
+    if: startsWith(github.ref, 'refs/tags/engine-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm --filter @age.nt/engine test
+      - run: pnpm --filter @age.nt/engine publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+
+  publish-cli:
+    if: startsWith(github.ref, 'refs/tags/cli-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm --filter @age.nt/nt test
+      - run: pnpm --filter @age.nt/nt publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

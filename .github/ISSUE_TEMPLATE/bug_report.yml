@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a problem with NT (engine, CLI, or VS Code extension)
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - engine
+        - cli
+        - vscode extension
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected vs. what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Include a minimal `.nt` file and the command you ran if possible.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Environment
+      description: Node version, OS, and NT/CLI version.
+      placeholder: "node 22.18.0, macOS 15, nt 0.1.0"
+    validations:
+      required: true
