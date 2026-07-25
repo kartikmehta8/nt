@@ -2,8 +2,7 @@
 
 **NT** is a small declarative language (`.nt` files) and a runtime engine.
 Describe your models, agents, subagents, sandboxes, tools, skills and workflows
-in one clean file, and one command brings the whole ecosystem up. Built on top of
-[Flue](https://flueframework.com).
+in one clean file, and one command brings the whole ecosystem up.
 
 ## Install
 

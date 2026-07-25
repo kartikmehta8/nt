@@ -211,12 +211,7 @@ export default function HomePage() {
       {/* ---- Footer ---- */}
       <footer className="nt-footer">
         <p>
-          NT is a declarative <code>.nt</code> language and engine for agent ecosystems, built on
-          top of{" "}
-          <a href="https://flueframework.com" target="_blank" rel="noreferrer">
-            Flue Framework
-          </a>
-          . Built by{" "}
+          NT is a declarative <code>.nt</code> language and engine for agent ecosystems. Built by{" "}
           <a href="https://mrmehta.in" target="_blank" rel="noreferrer">
             @mehta
           </a>
