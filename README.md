@@ -1,5 +1,3 @@
-# NT — a language for agent ecosystems
-
 ![banner](./assets/banner.png)
 
 **NT** is a small declarative language (`.nt` files) and a runtime engine.
@@ -76,7 +74,3 @@ pnpm format
 
 Coding conventions live in [CLAUDE.md](./CLAUDE.md). Contributions follow
 Conventional Commits.
-
-## License
-
-MIT
