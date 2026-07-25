@@ -1,0 +1,113 @@
+---
+title: Give your agent tools
+description: Tools are extra powers, like running a command or calling a website. Here is how to add them.
+---
+
+<img src="/give-your-agent-tools.png" alt="Give your agent tools" className="nt-banner" />
+
+On its own, an agent can only think and talk. **Tools** give it powers: reading a
+file, running a command, or calling a website. This guide shows the built-in
+tools and how to make your own.
+
+## Built-in tools
+
+Some tools come ready to use. Just list them under `tools`:
+
+```yaml
+agent writer
+  model: anthropic/claude-sonnet-5
+  tools:
+    - fs_read
+    - fs_write
+  instructions: |
+    Read notes.md, improve it, and save it back.
+```
+
+| Tool       | What it does                   |
+| ---------- | ------------------------------ |
+| `fs_read`  | Read a file.                   |
+| `fs_write` | Write a file.                  |
+| `fs_list`  | List the files in a folder.    |
+| `bash`     | Run a command in the terminal. |
+
+These all work inside the agent's [sandbox](/docs/guides/sandboxes), which keeps
+them safe.
+
+## Make your own tool
+
+You can add your own tools with a `tool` block. There are two kinds: one that
+runs a command, and one that calls a website.
+
+### A command tool
+
+Use `type: shell` to run a command. This one returns the current year:
+
+```yaml title="tools.nt"
+tool current_year
+  description: Returns the current four-digit year.
+  type: shell
+  command: date +%Y
+```
+
+Then let an agent use it by name:
+
+```yaml
+agent age
+  tools:
+    - current_year
+```
+
+### A website tool
+
+Use `type: http` to call a web address:
+
+```yaml
+tool lookup
+  description: Looks up a record by its id.
+  type: http
+  url: https://api.example.com/records/{id}
+```
+
+## Filling in the blanks
+
+The `{id}` and `{term}` parts in curly braces are placeholders. The agent fills
+them in when it uses the tool. For example:
+
+```yaml
+tool search_notes
+  description: Searches the notes file for a word.
+  type: shell
+  command: grep -n "{term}" notes.md
+```
+
+When the agent runs this tool with the word "iPhone", NT replaces `{term}` with
+`iPhone` before running the command.
+
+## What a tool needs
+
+| Setting       | What it does                                            |
+| ------------- | ------------------------------------------------------- |
+| `description` | Tells the agent when to use the tool. Write it clearly. |
+| `type`        | `shell` to run a command, or `http` to call a website.  |
+| `command`     | The command to run (for `shell` tools).                 |
+| `url`         | The web address to call (for `http` tools).             |
+
+<Callout title="The description matters">
+  The agent decides when to use a tool by reading its `description`. A clear description like
+  "Returns the current year" helps it pick the right tool at the right time.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card
+    title="Set up a sandbox"
+    href="/docs/guides/sandboxes"
+    description="Control where tools can read and write."
+  />
+  <Card
+    title="Add a skill"
+    href="/docs/guides/skills"
+    description="Give your agent a reusable checklist."
+  />
+</Cards>

@@ -1,0 +1,82 @@
+---
+title: Build a workflow
+description: A workflow runs a fixed list of steps in order, passing results from one step to the next.
+---
+
+<img src="/build-a-workflow.png" alt="Build a workflow" className="nt-banner" />
+
+A **workflow** is a fixed list of steps that run one after another. Each step can
+use the result of the step before it. Use a workflow when you always want the
+same sequence to happen, in the same order.
+
+## Make a workflow
+
+```yaml title="workflows.nt"
+workflow estimate_age
+  description: Find the year behind a clue, then guess the age.
+  input:
+    clues: string
+  output:
+    estimate: object
+  steps:
+    - agent: researcher
+      prompt: "What year does this clue point to: {clues}"
+      into: year
+    - prompt: |
+        Guess the person's age.
+        Clues: {clues}
+        Year: {year}
+      into: estimate
+```
+
+## How steps connect
+
+Each step runs a prompt and can save its answer with `into`. Later steps can use
+that saved answer by writing its name in curly braces.
+
+In the example above:
+
+1. The first step asks the researcher for a `year` and saves it as `year`.
+2. The second step uses both the original `{clues}` and the `{year}` from step
+   one.
+
+So `{clues}` comes from the workflow's input, and `{year}` comes from the step
+that ran before. This is how a workflow passes results forward.
+
+## What a workflow needs
+
+| Setting       | What it does                                      |
+| ------------- | ------------------------------------------------- |
+| `description` | A short note about the workflow.                  |
+| `agent`       | The default agent for steps that do not name one. |
+| `input`       | What you give the workflow to start.              |
+| `output`      | The shape of the final result.                    |
+| `steps`       | The list of steps to run, in order.               |
+
+Each step can have:
+
+| Step setting | What it does                                        |
+| ------------ | --------------------------------------------------- |
+| `agent`      | Which agent runs this step.                         |
+| `prompt`     | What to ask, with `{names}` filled in from earlier. |
+| `skill`      | An optional skill to add for this step.             |
+| `into`       | A name to save this step's answer under.            |
+
+## Run a workflow
+
+Workflows run with the same command as agents:
+
+```bash
+nt run estimate_age -i '{"clues":"bought the first iPhone at 22"}'
+```
+
+## Next
+
+<Cards>
+  <Card
+    title="Delegate to subagents"
+    href="/docs/guides/subagents"
+    description="Let an agent call helpers on its own."
+  />
+  <Card title="CLI reference" href="/docs/reference/cli" description="Every command and option." />
+</Cards>

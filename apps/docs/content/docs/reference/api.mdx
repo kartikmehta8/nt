@@ -1,0 +1,318 @@
+---
+title: API reference
+description: Every keyword, every field it accepts, the allowed values, and the defaults.
+---
+
+<img src="/api-reference.png" alt="API reference" className="nt-banner" />
+
+This is the full reference for the `.nt` format. It lists every keyword (block),
+every field you can set on it, the values each field accepts, and the default
+when you leave it out.
+
+<Callout title="How to read this">
+  Each keyword has its own table. **Field** is the exact name you write. **Type** is what kind of
+  value it takes. **Values / default** shows the allowed values, or the default used when you skip
+  the field.
+</Callout>
+
+## Field types
+
+`input`, `output`, and a tool's `input` are maps of fields. Each field is either
+a bare type or an object with more detail.
+
+```yaml
+input:
+  clues: string # short form
+output:
+  age:
+    type: number # full form
+    description: The best guess.
+    required: false # optional; defaults to true
+```
+
+| Type      | Meaning             |
+| --------- | ------------------- |
+| `string`  | Text.               |
+| `number`  | A number.           |
+| `boolean` | `true` or `false`.  |
+| `object`  | A nested structure. |
+| `array`   | A list of values.   |
+
+| Field option  | Type    | Values / default               |
+| ------------- | ------- | ------------------------------ |
+| `type`        | string  | One of the types above.        |
+| `description` | string  | Optional note about the field. |
+| `required`    | boolean | `true` (default) or `false`.   |
+
+## Thinking levels
+
+Several places accept a `thinking` level. From least to most effort:
+
+| Value     |                       |
+| --------- | --------------------- |
+| `off`     | No extended thinking. |
+| `minimal` |                       |
+| `low`     |                       |
+| `medium`  | The default.          |
+| `high`    |                       |
+| `xhigh`   |                       |
+| `max`     | The most thinking.    |
+
+---
+
+## config
+
+Project-wide settings. One `config` block per project.
+
+| Field       | Type   | Values / default                                   |
+| ----------- | ------ | -------------------------------------------------- |
+| `target`    | string | Defaults to `node`.                                |
+| `entry`     | string | The agent or workflow `nt up` runs. No default.    |
+| `defaults`  | map    | Shared defaults for every agent (see below).       |
+| `providers` | map    | Named provider blocks (see [provider](#provider)). |
+
+### config.defaults
+
+| Field        | Type   | Values / default                                            |
+| ------------ | ------ | ----------------------------------------------------------- |
+| `model`      | string | `provider/model-id`. No default.                            |
+| `sandbox`    | string | A sandbox name. No default.                                 |
+| `thinking`   | string | A [thinking level](#thinking-levels). Defaults to `medium`. |
+| `max_tokens` | number | Defaults to `8000`.                                         |
+
+```yaml
+config
+  target: node
+  entry: age
+  defaults:
+    model: anthropic/claude-sonnet-5
+    sandbox: workspace
+    thinking: medium
+    max_tokens: 8000
+  providers:
+    anthropic:
+      api: anthropic
+      api_key: env(ANTHROPIC_API_KEY)
+```
+
+---
+
+## provider
+
+Where the model comes from. Declared on its own or under `config.providers`.
+
+| Field      | Type   | Values / default                                                                                                                   |
+| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `api`      | string | `anthropic` or `openai-completions`. Defaults to `anthropic` if the provider is named `anthropic`, otherwise `openai-completions`. |
+| `base_url` | string | Endpoint for OpenAI-style providers. Must be `https` (local addresses may use `http`).                                             |
+| `api_key`  | string | Use `env(NAME)`. A literal key triggers a warning.                                                                                 |
+| `headers`  | map    | Extra request headers.                                                                                                             |
+
+```yaml
+provider ollama
+  api: openai-completions
+  base_url: http://localhost:11434/v1
+  api_key: env(OLLAMA_API_KEY, ollama)
+```
+
+---
+
+## agent / subagent
+
+The core worker. `agent` and `subagent` accept exactly the same fields.
+
+| Field          | Type   | Values / default                                                 |
+| -------------- | ------ | ---------------------------------------------------------------- |
+| `description`  | string | Short summary. Defaults to empty.                                |
+| `model`        | string | `provider/model-id`. Falls back to `config.defaults.model`.      |
+| `instructions` | string | The system prompt. Use a block scalar for multiple lines.        |
+| `thinking`     | string | A [thinking level](#thinking-levels). Falls back to defaults.    |
+| `max_tokens`   | number | Reply length limit. Falls back to defaults (`8000`).             |
+| `sandbox`      | string | A sandbox name. Falls back to `config.defaults.sandbox`.         |
+| `cwd`          | string | Override the working directory for this agent.                   |
+| `tools`        | list   | Built-in tool names or your [tool](#tool) names.                 |
+| `subagents`    | list   | Names of [subagent](#agent--subagent) blocks it can delegate to. |
+| `skills`       | list   | Names of [skill](#skill) blocks to load.                         |
+| `input`        | map    | Typed input fields (see [Field types](#field-types)).            |
+| `output`       | map    | Typed output fields. When set, the reply is returned as JSON.    |
+| `message`      | string | An optional default message used when no input is given.         |
+
+```yaml
+agent age
+  description: Guesses a person's age from clues.
+  model: anthropic/claude-sonnet-5
+  thinking: high
+  max_tokens: 8000
+  sandbox: workspace
+  tools: [current_year, fs_write]
+  subagents: [researcher]
+  skills: [estimation]
+  instructions: |
+    Guess the person's most likely age from the clues.
+  input:
+    clues: string
+  output:
+    age: number
+    reason: string
+```
+
+### Built-in tools
+
+You can list these under `tools` without declaring them:
+
+| Tool       | What it does                  |
+| ---------- | ----------------------------- |
+| `fs_read`  | Read a file in the sandbox.   |
+| `fs_write` | Write a file in the sandbox.  |
+| `fs_list`  | List files in the sandbox.    |
+| `bash`     | Run a command in the sandbox. |
+
+---
+
+## sandbox
+
+The workspace an agent reads, writes, and runs commands in.
+
+| Field         | Type   | Values / default                                             |
+| ------------- | ------ | ------------------------------------------------------------ |
+| `description` | string | Short summary. Defaults to empty.                            |
+| `type`        | string | `virtual` (default) or `local`.                              |
+| `cwd`         | string | Working directory. Defaults to `/workspace`.                 |
+| `env`         | map    | Environment values for commands. Values may use `env(NAME)`. |
+
+```yaml
+sandbox workspace
+  description: In-memory workspace.
+  type: virtual
+  cwd: /workspace
+  env:
+    GREETING: hello
+```
+
+<Callout type="warn" title="local needs opt-in">
+  A `local` sandbox uses your real files and terminal. It only runs when you set `NT_ALLOW_LOCAL=1`
+  in your environment.
+</Callout>
+
+---
+
+## tool
+
+A custom power an agent can call. `{placeholders}` are filled from the tool's
+`input`.
+
+| Field            | Type    | Values / default                                                                |
+| ---------------- | ------- | ------------------------------------------------------------------------------- |
+| `description`    | string  | Tells the model when to use it. Defaults to the tool name.                      |
+| `type`           | string  | `shell` (default) or `http`.                                                    |
+| `command`        | string  | The command to run (for `shell` tools).                                         |
+| `url`            | string  | The address to call (for `http` tools).                                         |
+| `method`         | string  | HTTP method for `http` tools, such as `GET` or `POST`.                          |
+| `headers`        | map     | Request headers for `http` tools.                                               |
+| `input`          | map     | Typed inputs that fill `{placeholders}`.                                        |
+| `allow_internal` | boolean | Allow `http` tools to call private or localhost addresses. Defaults to `false`. |
+
+```yaml
+tool current_year
+  description: Returns the current four-digit year.
+  type: shell
+  command: date +%Y
+
+tool lookup
+  description: Fetch a record by id.
+  type: http
+  method: GET
+  url: https://api.example.com/records/{id}
+  input:
+    id: string
+```
+
+---
+
+## skill
+
+Reusable instructions loaded into an agent's prompt.
+
+| Field          | Type   | Values / default                                              |
+| -------------- | ------ | ------------------------------------------------------------- |
+| `description`  | string | Short summary. Defaults to the skill name.                    |
+| `instructions` | string | The reusable guidance. Use a block scalar for multiple lines. |
+
+```yaml
+skill estimation
+  description: A checklist for guessing an age.
+  instructions: |
+    1. Turn each clue into a year.
+    2. Pick one number.
+```
+
+---
+
+## workflow
+
+A fixed sequence of steps that pass results forward.
+
+| Field         | Type   | Values / default                              |
+| ------------- | ------ | --------------------------------------------- |
+| `description` | string | Short summary. Defaults to empty.             |
+| `agent`       | string | Default agent for steps that do not name one. |
+| `input`       | map    | Typed input for the whole workflow.           |
+| `output`      | map    | Typed final result.                           |
+| `steps`       | list   | The steps to run, in order (see below).       |
+
+Each entry in `steps` accepts:
+
+| Step field | Type   | Values / default                                                  |
+| ---------- | ------ | ----------------------------------------------------------------- |
+| `prompt`   | string | What to ask. Use `{name}` to insert input or earlier results.     |
+| `agent`    | string | Which agent runs this step. Falls back to the workflow's `agent`. |
+| `skill`    | string | An optional skill to add for this step.                           |
+| `into`     | string | A name to save this step's result under.                          |
+
+```yaml
+workflow estimate_age
+  description: Find the year, then guess the age.
+  agent: age
+  input:
+    clues: string
+  output:
+    estimate: object
+  steps:
+    - agent: researcher
+      prompt: "What year does this point to: {clues}"
+      into: year
+    - prompt: |
+        Guess the age. Clues: {clues}. Year: {year}
+      into: estimate
+```
+
+---
+
+## import
+
+Pulls in another file or folder. Put imports at the top of a file.
+
+| Form               | Meaning                              |
+| ------------------ | ------------------------------------ |
+| `import ./file.nt` | Import one file.                     |
+| `import ./folder`  | Import every `.nt` file in a folder. |
+
+```yaml
+import ./config.nt
+import ./subagents
+```
+
+---
+
+## Defaults & limits
+
+Handy values built into the engine:
+
+| Name                    | Value        |
+| ----------------------- | ------------ |
+| Default `thinking`      | `medium`     |
+| Default `max_tokens`    | `8000`       |
+| Default sandbox `cwd`   | `/workspace` |
+| Max steps per agent run | `12`         |
+| Max delegation depth    | `6`          |
+| HTTP tool timeout       | 30 seconds   |

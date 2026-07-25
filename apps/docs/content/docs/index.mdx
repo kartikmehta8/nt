@@ -1,0 +1,117 @@
+---
+title: Introduction
+description: NT lets you build AI agents by describing them in a simple text file, instead of writing code.
+---
+
+<img src="/introduction.png" alt="Introduction" className="nt-banner" />
+
+Instead of writing code, you describe what you want in a plain text file (a file
+that ends in `.nt`). Then you run one command, and NT turns your description into
+a working agent that talks to a real AI model.
+
+Think of it like a recipe. **You list the ingredients (the model, the tools, the
+steps), and NT cooks it for you.**
+
+## Why NT
+
+Building an AI agent normally means writing a lot of code to glue things
+together: the model, the tools it can use, the files it can read, how it hands
+work to other agents, and so on. That is a lot of plumbing.
+
+NT replaces the plumbing with a short, readable file. You write what the agent
+should do in plain words, and NT wires everything up.
+
+<Callout title="You do not need to be a programmer">
+  If you can write a shopping list, you can write an `.nt` file. It uses simple `name: value` lines
+  and short lists. No programming needed.
+</Callout>
+
+## What you can describe
+
+An `.nt` file can contain any of these building blocks:
+
+<Cards>
+  <Card
+    title="Agent"
+    href="/docs/guides/agents"
+    description="The main worker. It reads your request and does the job."
+  />
+  <Card
+    title="Tools"
+    href="/docs/guides/tools"
+    description="Extra powers, like running a command or calling a website."
+  />
+  <Card
+    title="Skills"
+    href="/docs/guides/skills"
+    description="Reusable instructions you can share between agents."
+  />
+  <Card
+    title="Sandboxes"
+    href="/docs/guides/sandboxes"
+    description="A safe space where the agent can read and write files."
+  />
+  <Card
+    title="Subagents"
+    href="/docs/guides/subagents"
+    description="Helper agents your main agent can hand work to."
+  />
+  <Card
+    title="Workflows"
+    href="/docs/guides/workflows"
+    description="A list of steps that run one after another."
+  />
+</Cards>
+
+## A tiny example
+
+Here is a complete agent. It estimates a person's age from clues:
+
+```yaml title="age.nt"
+agent age
+  description: Guesses a person's age from clues.
+  model: anthropic/claude-sonnet-5
+  instructions: |
+    Guess the person's most likely age from the clues you are given.
+  input:
+    clues: string
+  output:
+    age: number
+    reason: string
+```
+
+That is the whole thing. Run it, and you have a working agent.
+
+## How you use it
+
+<Steps>
+<Step>
+### Write a file
+
+Describe your agent in an `.nt` file.
+
+</Step>
+<Step>
+### Run one command
+
+Type `nt run` and NT brings your agent to life against a real AI model.
+
+</Step>
+<Step>
+### Get an answer
+
+Give it some input, and it replies. That is it.
+
+</Step>
+</Steps>
+
+## Where to go next
+
+<Cards>
+  <Card title="Installation" href="/docs/installation" description="Get NT onto your computer." />
+  <Card
+    title="Your first agent"
+    href="/docs/first-agent"
+    description="Build and run a real agent in a few minutes."
+  />
+</Cards>

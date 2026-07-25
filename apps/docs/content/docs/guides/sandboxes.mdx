@@ -1,0 +1,84 @@
+---
+title: Set up a sandbox
+description: A sandbox is the safe space where your agent reads files and runs commands.
+---
+
+<img src="/setup-a-sandbox.png" alt="Set up a sandbox" className="nt-banner" />
+
+A **sandbox** is the workspace your agent uses when it reads files, writes files,
+or runs commands. It keeps the agent's actions in one place so nothing
+unexpected happens on your computer.
+
+## The two kinds
+
+There are two kinds of sandbox:
+
+<Cards>
+  <Card
+    title="virtual (safe, default)"
+    description="A pretend filesystem that lives in memory. Nothing touches your real computer. Best for most cases."
+  />
+  <Card
+    title="local (real access)"
+    description="The real files and terminal on your computer. Powerful, but only use it when you trust the input."
+  />
+</Cards>
+
+## Make a sandbox
+
+```yaml title="sandboxes.nt"
+sandbox workspace
+  description: A safe in-memory space for notes and commands.
+  type: virtual
+  cwd: /workspace
+```
+
+Then point an agent at it:
+
+```yaml
+agent age
+  sandbox: workspace
+```
+
+## What a sandbox needs
+
+| Setting       | What it does                                                 |
+| ------------- | ------------------------------------------------------------ |
+| `description` | A short note about the sandbox.                              |
+| `type`        | `virtual` (safe, in memory) or `local` (your real computer). |
+| `cwd`         | The folder the agent starts in.                              |
+| `env`         | Extra settings passed to commands, if any.                   |
+
+```yaml
+sandbox workspace
+  type: virtual
+  cwd: /workspace
+  env:
+    GREETING: hello
+```
+
+## Using the real computer
+
+The `local` type lets the agent touch your real files and run real commands.
+Because that is powerful, NT keeps it off by default. To turn it on, set
+`NT_ALLOW_LOCAL=1` when you run:
+
+```bash
+NT_ALLOW_LOCAL=1 nt run builder
+```
+
+<Callout type="warn" title="Only use local with trusted input">
+  A `local` sandbox runs whatever commands the model decides to run, on your real computer. Only use
+  it when you trust what is going in. When in doubt, stick with `virtual`.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card
+    title="Give your agent tools"
+    href="/docs/guides/tools"
+    description="Tools run inside the sandbox you choose."
+  />
+  <Card title="Create an agent" href="/docs/guides/agents" description="See every agent setting." />
+</Cards>

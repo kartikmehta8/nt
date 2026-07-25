@@ -1,0 +1,83 @@
+---
+title: The .nt syntax
+description: The simple rules of the .nt file format, all in one place.
+---
+
+<img src="/the-nt-syntax.png" alt="The .nt syntax" className="nt-banner" />
+
+The `.nt` format is meant to be easy to read and write. This page is a quick
+reference to all its rules.
+
+## The rules
+
+- **Indent with spaces.** Use two spaces per level. Do not use tabs.
+- **Comments start with `#`.** Anything after `#` on a line is ignored.
+- **Settings are `name: value`.** One per line.
+- **Lists use `-`.** One item per line, or write them inline like `[a, b, c]`.
+- **Long text uses `|`.** Everything indented under it is kept as-is.
+- **Secrets use `env(NAME)`.** This reads a value from your environment.
+
+```yaml
+# this is a comment
+agent age
+  description: Guesses a person's age.       # a note
+  model: anthropic/claude-sonnet-5
+  tools: [current_year, fs_write]            # inline list
+  skills:                                     # list on separate lines
+    - estimation
+  instructions: |                             # long text
+    Guess the person's most likely age
+    from the clues you are given.
+```
+
+## The building blocks
+
+Every `.nt` file is made of blocks. Each starts with a keyword and, for most, a
+name. Each has its own guide:
+
+| Keyword    | What it is                                                                    |
+| ---------- | ----------------------------------------------------------------------------- |
+| `import`   | Pull in another file or folder. See [entry & config](/docs/entry-and-config). |
+| `config`   | Project settings and defaults. See [entry & config](/docs/entry-and-config).  |
+| `provider` | Where the AI comes from. See [Connect a model](/docs/guides/providers).       |
+| `agent`    | The main worker. See [Create an agent](/docs/guides/agents).                  |
+| `subagent` | A helper the agent can call. See [Subagents](/docs/guides/subagents).         |
+| `sandbox`  | A safe workspace. See [Sandboxes](/docs/guides/sandboxes).                    |
+| `tool`     | A custom power. See [Tools](/docs/guides/tools).                              |
+| `skill`    | Reusable instructions. See [Skills](/docs/guides/skills).                     |
+| `workflow` | A list of steps. See [Workflows](/docs/guides/workflows).                     |
+
+## Reading secrets with env()
+
+`env(NAME)` reads a value from your environment. You can give a fallback for when
+it is not set with `env(NAME, fallback)`:
+
+```yaml
+api_key: env(ANTHROPIC_API_KEY)
+api_key: env(OLLAMA_API_KEY, ollama) # uses "ollama" if the variable is missing
+```
+
+## Input and output types
+
+`input` and `output` are lists of fields. Each field has a type. You can write it
+short:
+
+```yaml
+input:
+  clues: string
+```
+
+Or with a description:
+
+```yaml
+output:
+  age:
+    type: number
+    description: The best single guess.
+  reason:
+    type: string
+    description: One short sentence.
+```
+
+The types are `string` (text), `number`, `boolean` (true or false), and
+`object`.

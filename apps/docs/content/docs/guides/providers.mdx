@@ -1,0 +1,94 @@
+---
+title: Connect a model
+description: Choose which AI powers your agents, from Claude to OpenAI to a local model.
+---
+
+<img src="/connect-a-model.png" alt="Connect a model" className="nt-banner" />
+
+A **provider** is where the AI comes from. NT supports Claude (Anthropic),
+OpenAI, and any service that works like OpenAI (such as a local model). This
+guide shows how to set one up.
+
+## The built-in providers
+
+Two providers are built in: `anthropic` (Claude) and `openai`. You still list the
+one you use in your `config` so NT knows your key:
+
+```yaml title="config.nt"
+config
+  providers:
+    anthropic:
+      api: anthropic
+      api_key: env(ANTHROPIC_API_KEY)
+```
+
+## Picking a model
+
+An agent's `model` is written as `provider/model-name`:
+
+```yaml
+agent age
+  model: anthropic/claude-sonnet-5
+```
+
+The part before the slash (`anthropic`) is the provider. The part after is the
+model.
+
+## Using a local or custom model
+
+If you run a model on your own machine (for example with Ollama), add it as a
+provider that speaks the OpenAI style, and give it a web address:
+
+```yaml
+config
+  providers:
+    ollama:
+      api: openai-completions
+      base_url: http://localhost:11434/v1
+      api_key: env(OLLAMA_API_KEY, ollama)
+```
+
+Then point an agent at it:
+
+```yaml
+agent local
+  model: ollama/llama3.1
+```
+
+## What a provider needs
+
+| Setting    | What it does                                           |
+| ---------- | ------------------------------------------------------ |
+| `api`      | The style to use: `anthropic` or `openai-completions`. |
+| `api_key`  | Your key, read from your environment with `env(...)`.  |
+| `base_url` | The web address, for local or custom services.         |
+
+## Keeping your key safe
+
+Notice the key is written as `env(ANTHROPIC_API_KEY)`, not the real key. This
+reads it from your environment instead of saving it in the file.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+<Callout type="warn" title="Never paste a real key into a file">
+  Always use `env(NAME)`. NT will warn you if it spots a real key written directly in a file. The
+  one exception is a dummy placeholder, like Ollama's `ollama` fallback above, which is not a
+  secret.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card
+    title="Files & configuration"
+    href="/docs/entry-and-config"
+    description="Where providers and defaults live."
+  />
+  <Card
+    title="Create an agent"
+    href="/docs/guides/agents"
+    description="Pick a model for your agent."
+  />
+</Cards>

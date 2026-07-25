@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "root": true,
+  "pages": [
+    "---Get Started---",
+    "index",
+    "installation",
+    "first-agent",
+    "---Project Setup---",
+    "entry-and-config",
+    "guides",
+    "reference"
+  ]
+}

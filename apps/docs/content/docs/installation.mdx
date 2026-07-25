@@ -1,0 +1,118 @@
+---
+title: Installation
+description: Install the nt command, set your AI key, and check that everything works.
+---
+
+<img src="/installation.png" alt="Installation" className="nt-banner" />
+
+Getting NT ready takes three small steps: install it, set your AI key, and check
+it works.
+
+## Step 1: Install the CLI
+
+NT is a command called `nt`. Install it with your package manager:
+
+<Tabs items={["npm", "pnpm", "yarn", "bun"]}>
+
+<Tab value="npm">
+
+```bash
+npm install -g @age.nt/nt
+```
+
+</Tab>
+
+<Tab value="pnpm">
+
+```bash
+pnpm add -g @age.nt/nt
+```
+
+</Tab>
+
+<Tab value="yarn">
+
+```bash
+yarn global add @age.nt/nt
+```
+
+</Tab>
+
+<Tab value="bun">
+
+```bash
+bun add -g @age.nt/nt
+```
+
+</Tab>
+
+</Tabs>
+
+The `-g` means "global", so you can use the `nt` command from any folder.
+
+<Callout type="warn" title="You need Node 22.18 or newer">
+  NT runs on Node.js. Check your version with `node --version`. If it is older than 22.18, update
+  Node first.
+</Callout>
+
+## Step 2: Set your AI key
+
+NT talks to a real AI model, so it needs a key. If you are using Anthropic
+(Claude), set it like this:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+You only need this when you actually run an agent. Checking and inspecting your
+files works without a key.
+
+## Step 3: Check it works
+
+```bash
+nt --help
+nt --version
+```
+
+If you see the help text and a version number, you are ready.
+
+## Downloads
+
+<Cards>
+  <Card
+    icon={<NpmLogo size={22} />}
+    title="nt on npm"
+    href="https://www.npmjs.com/package/@age.nt/nt"
+    description="The command you install to build and run agents."
+  />
+  <Card
+    icon={<VSCodeLogo size={22} />}
+    title="VS Code extension"
+    href="https://marketplace.visualstudio.com/items?itemName=age-nt.nt"
+    description="Color and smart hints for .nt files. Search “NT” in VS Code."
+  />
+  <Card
+    icon={<CursorLogo size={22} />}
+    title="Other IDEs"
+    href="https://open-vsx.org/extension/age-nt/nt"
+    description="The same extension on Open VSX, for Cursor, Windsurf, and VSCodium."
+  />
+  <Card
+    icon={<GitHubLogo size={22} />}
+    title="Source on GitHub"
+    href="https://github.com/kartikmehta8/nt"
+    description="The full project: engine, CLI, editor extension, and examples."
+  />
+</Cards>
+
+import { VSCodeLogo, CursorLogo, NpmLogo, GitHubLogo } from "@/components/logos";
+
+## Next
+
+<Cards>
+  <Card
+    title="Your first agent"
+    href="/docs/first-agent"
+    description="Build a real agent and run it, step by step."
+  />
+</Cards>

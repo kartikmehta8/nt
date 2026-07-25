@@ -1,0 +1,67 @@
+---
+title: Add a skill
+description: A skill is a reusable set of instructions you can share between agents.
+---
+
+<img src="/add-a-skill.png" alt="Add a skill" className="nt-banner" />
+
+A **skill** is a saved set of instructions. Write it once, then hand it to any
+agent that needs it. It is a good way to avoid copying the same guidance into
+every agent.
+
+## Make a skill
+
+A skill has a name, a short description, and its instructions:
+
+```yaml title="skills.nt"
+skill estimation
+  description: A checklist for guessing someone's age.
+  instructions: |
+    When guessing an age:
+    1. Turn each clue into an approximate year.
+    2. Match each year to a life stage, like school or retirement.
+    3. Measure from those years to today.
+    4. Settle any conflicts and pick one number.
+```
+
+## Use a skill
+
+List it under `skills` on an agent. Its instructions get added to the agent's
+own instructions:
+
+```yaml
+agent age
+  model: anthropic/claude-sonnet-5
+  skills:
+    - estimation
+  instructions: |
+    Guess the person's age. Follow the estimation checklist.
+```
+
+## What a skill needs
+
+| Setting        | What it does                                   |
+| -------------- | ---------------------------------------------- |
+| `description`  | A short note about what the skill is for.      |
+| `instructions` | The reusable guidance, written in plain words. |
+
+<Callout title="Skills vs instructions">
+  An agent's own `instructions` are personal to that agent. A `skill` is shared, so several agents
+  can use the same one. Put agent-specific direction in `instructions`, and shared steps in a
+  `skill`.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card
+    title="Give your agent tools"
+    href="/docs/guides/tools"
+    description="Add real powers like running commands."
+  />
+  <Card
+    title="Build a workflow"
+    href="/docs/guides/workflows"
+    description="Run several steps in order."
+  />
+</Cards>

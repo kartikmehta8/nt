@@ -1,0 +1,100 @@
+---
+title: Your first agent
+description: Write a small .nt file and run a real agent in a few minutes.
+---
+
+<img src="/your-first-agent.png" alt="Your first agent" className="nt-banner" />
+
+Let us build a real agent from scratch. It will guess a person's age from clues.
+By the end you will have written a file and run it against a real AI model.
+
+## Step 1: Make a file
+
+Create a file called `age.nt` in any folder. Put this inside it:
+
+```yaml title="age.nt"
+agent age
+  description: Guesses a person's age from clues.
+  model: anthropic/claude-sonnet-5
+  instructions: |
+    Guess the person's most likely age from the clues you are given.
+    Reply with your best single guess and one short reason.
+  input:
+    clues: string
+  output:
+    age: number
+    reason: string
+```
+
+Here is what each line means, in plain words:
+
+- `agent age` gives your agent a name: `age`.
+- `description` is a short note about what it does.
+- `model` is which AI brain it uses.
+- `instructions` is what you want it to do. Write it like you are talking to a
+  helpful assistant.
+- `input` is what you will give it (here, some `clues`, which are text).
+- `output` is what you want back (a number `age` and a text `reason`).
+
+## Step 2: Check the file
+
+Before running, ask NT to check your file for mistakes:
+
+```bash
+nt validate
+```
+
+If everything is fine, you will see a success message. If not, NT tells you what
+to fix.
+
+<Callout title="No file name needed">
+  Every command looks for `age.nt` in your current folder by default, so you rarely type a file
+  name. To use a different file, add `--file path.nt`.
+</Callout>
+
+## Step 3: Run it
+
+Set your AI key, then run the agent with some clues:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+
+nt run age -i '{"clues":"bought the first iPhone at 22"}'
+```
+
+The `-i` part is the input you are giving it, written as `{"clues": "..."}`.
+
+You will get an answer back like this:
+
+```json
+{ "age": 39, "reason": "The first iPhone came out in 2007." }
+```
+
+That is a working agent.
+
+<Callout title="Prefer a chat?">
+  Try `nt chat age`. It opens a back-and-forth chat that remembers what you said earlier. Type
+  `exit` to leave.
+</Callout>
+
+## What just happened
+
+You described an agent in plain text, NT connected it to a real AI model, and it
+answered your question in the exact shape you asked for.
+
+From here you can give your agent more powers.
+
+## Next
+
+<Cards>
+  <Card
+    title="Files & configuration"
+    href="/docs/entry-and-config"
+    description="Learn how the main file is organized and how to set defaults."
+  />
+  <Card
+    title="Give your agent tools"
+    href="/docs/guides/tools"
+    description="Let it run commands or call websites."
+  />
+</Cards>

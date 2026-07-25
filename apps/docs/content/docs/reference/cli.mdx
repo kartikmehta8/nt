@@ -1,0 +1,93 @@
+---
+title: CLI commands
+description: Every nt command and option, with examples.
+---
+
+<img src="/cli-commands.png" alt="CLI commands" className="nt-banner" />
+
+`nt` is the command you use to check, inspect, and run your project. This page
+lists every command and option.
+
+```text
+nt <command> [options]
+```
+
+<Callout title="age.nt is the default">
+  Every command loads `age.nt` from the current folder automatically, so you usually type just `nt
+  run age`. Add `--file path.nt` only when your file has a different name or lives elsewhere (or
+  `--dir folder` to load a whole folder).
+</Callout>
+
+## Commands
+
+| Command          | What it does                                             |
+| ---------------- | -------------------------------------------------------- |
+| `nt validate`    | Check your files for mistakes.                           |
+| `nt list`        | List everything in your project.                         |
+| `nt graph`       | Show how your agents connect to their tools and helpers. |
+| `nt up`          | Get everything ready, then run your default agent.       |
+| `nt run <name>`  | Run one agent, subagent, or workflow.                    |
+| `nt chat <name>` | Chat with an agent, back and forth.                      |
+
+## Options
+
+| Option               | What it does                                                                 |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `-f, --file FILE`    | The main `.nt` file to load. Its imports are followed. Defaults to `age.nt`. |
+| `-d, --dir FOLDER`   | Load every `.nt` file in a folder instead.                                   |
+| `-i, --input JSON`   | The input to give, written as JSON.                                          |
+| `-m, --message TEXT` | A quick way to send plain text instead of JSON.                              |
+| `--run NAME`         | With `up`, run this agent or workflow after setup.                           |
+| `-v, --verbose`      | Show extra detail about what the agent is doing.                             |
+| `-h, --help`         | Show help.                                                                   |
+
+## Checking your work
+
+`validate`, `list`, and `graph` all work offline, without an AI key. Use them to
+make sure your project is set up right.
+
+```bash
+nt validate
+nt list
+nt graph
+```
+
+## Running an agent
+
+`run` runs something once. Give it input with `-i`:
+
+```bash
+nt run age -i '{"clues":"bought the first iPhone at 22"}'
+```
+
+For a quick plain-text message, use `-m` instead:
+
+```bash
+nt run age -m "graduated college in 2010"
+```
+
+Add `-v` to watch what the agent does step by step:
+
+```bash
+nt run age -m "graduated in 2010" -v
+```
+
+## Chatting with an agent
+
+`chat` opens a conversation that remembers what you said earlier. Type `exit` or
+press Ctrl-D to leave.
+
+```text
+$ nt chat age
+Chatting with 'age'. Type 'exit' or press Ctrl-D to quit.
+age › she bought the first iPhone at 22
+{ "age": 39, "reason": "..." }
+age › what if it was the iPhone 15?
+{ "age": 31, "reason": "..." }
+age › exit
+```
+
+<Callout title="Which commands need an AI key">
+  `up`, `run`, and `chat` talk to a real model, so they need your key set (for example
+  `ANTHROPIC_API_KEY`). `validate`, `list`, and `graph` do not.
+</Callout>

@@ -1,0 +1,153 @@
+---
+title: Files & configuration
+description: How the main .nt file is organized, how to split it into pieces, and how to set project defaults.
+---
+
+<img src="/files-and-configuration.png" alt="Files & configuration" className="nt-banner" />
+
+As your agent grows, one file can get long. NT lets you split your project into
+several files and tie them together from one **entry file**. This page explains
+that setup and the `config` block that holds your project settings.
+
+## The entry file
+
+The entry file is the main file NT reads first. It usually does two things:
+
+1. Pulls in the other files with `import`.
+2. Defines your main agent.
+
+```yaml title="age.nt (entry file)"
+import ./config.nt
+import ./tools.nt
+import ./skills.nt
+import ./subagents/researcher.nt
+
+agent age
+  description: Guesses a person's age from clues.
+  model: anthropic/claude-sonnet-5
+  tools:
+    - current_year
+  skills:
+    - estimation
+  subagents:
+    - researcher
+  instructions: |
+    Guess the person's most likely age from the clues.
+  input:
+    clues: string
+  output:
+    age: number
+    reason: string
+```
+
+If your entry file is named `age.nt` and sits in the current folder, you do not
+need to name it. Every command uses `age.nt` by default:
+
+```bash
+nt run age
+```
+
+To load a different file, add `--file`:
+
+```bash
+nt run age --file other.nt
+```
+
+## Splitting into pieces
+
+You do not have to split anything. A single file works fine. But once you have a
+few tools and helpers, it is tidier to keep each kind in its own file.
+
+A common layout looks like this:
+
+```text
+age.nt          the entry file: imports + the main agent
+config.nt       project settings and the AI provider
+tools.nt        custom tools
+skills.nt       reusable instructions
+subagents/      helper agents
+```
+
+### import
+
+`import` pulls in another file. Put imports at the top, one per line. Paths start
+with `./` and are relative to the current file.
+
+```yaml
+import ./config.nt
+import ./tools.nt
+import ./subagents/researcher.nt
+```
+
+You can also import a whole folder, which pulls in every `.nt` file inside it:
+
+```yaml
+import ./subagents
+```
+
+<Callout title="Two ways to load a project">
+  With no options, NT loads `age.nt` from the current folder and follows its imports. Point it at a
+  different entry file with `--file other.nt`, or at a whole folder with `--dir ./my-project`. All
+  three end up with the same kind of project.
+</Callout>
+
+## The config block
+
+The `config` block holds settings for the whole project: default values your
+agents share, which agent to run by default, and the AI provider.
+
+```yaml title="config.nt"
+config
+  entry: age
+  defaults:
+    model: anthropic/claude-sonnet-5
+    thinking: medium
+    max_tokens: 8000
+  providers:
+    anthropic:
+      api: anthropic
+      api_key: env(ANTHROPIC_API_KEY)
+```
+
+### entry
+
+The name of the agent (or workflow) to run when you type `nt up`. In the example
+above, that is the `age` agent.
+
+### defaults
+
+Values every agent uses unless it sets its own. This saves you repeating the same
+lines in every agent.
+
+| Setting      | What it does                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| `model`      | The default AI model, written as `provider/model-name`.                                      |
+| `sandbox`    | The default workspace agents run in.                                                         |
+| `thinking`   | How hard the model thinks. One of `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. |
+| `max_tokens` | The most words the model can use in a reply.                                                 |
+
+### providers
+
+Where the AI comes from. `anthropic` (Claude) and `openai` are built in. You
+still list the one you use here so NT knows your key. See
+[Connect a model](/docs/guides/providers) for details.
+
+<Callout type="warn" title="Keep your key safe">
+  Always write your key as `env(ANTHROPIC_API_KEY)`, not the real key. That reads it from your
+  environment instead of saving it in the file.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card
+    title="Create an agent"
+    href="/docs/guides/agents"
+    description="Every setting an agent can have, explained simply."
+  />
+  <Card
+    title="Connect a model"
+    href="/docs/guides/providers"
+    description="Set up Claude, OpenAI, or a local model."
+  />
+</Cards>

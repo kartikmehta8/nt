@@ -1,0 +1,111 @@
+---
+title: Create an agent
+description: An agent is the main worker. Here is every setting it can have, in plain English.
+---
+
+<img src="/create-an-agent.png" alt="Create an agent" className="nt-banner" />
+
+An agent is the main worker in NT. It reads your request, thinks, uses any tools
+you gave it, and replies. This guide walks through every setting an agent can
+have.
+
+## The basics
+
+The smallest useful agent needs a name, a model, and instructions:
+
+```yaml
+agent helper
+  model: anthropic/claude-sonnet-5
+  instructions: |
+    Answer the user's question clearly and briefly.
+```
+
+`agent helper` names it `helper`. That is the name you use when you run it.
+
+## All the settings
+
+```yaml
+agent age
+  description: Guesses a person's age from clues.
+  model: anthropic/claude-sonnet-5
+  thinking: high
+  sandbox: workspace
+  tools:
+    - current_year
+  skills:
+    - estimation
+  subagents:
+    - researcher
+  instructions: |
+    Guess the person's most likely age from the clues.
+  input:
+    clues: string
+  output:
+    age: number
+    reason: string
+```
+
+Here is what each one does:
+
+| Setting        | What it does                                                                                       |
+| -------------- | -------------------------------------------------------------------------------------------------- |
+| `description`  | A short note about the agent. Shown when you list your project.                                    |
+| `model`        | Which AI to use, written as `provider/model-name`.                                                 |
+| `thinking`     | How hard it thinks. From least to most: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. |
+| `sandbox`      | The workspace it can read and write files in. See [Sandboxes](/docs/guides/sandboxes).             |
+| `tools`        | Extra powers it can use. See [Tools](/docs/guides/tools).                                          |
+| `skills`       | Reusable instructions to load. See [Skills](/docs/guides/skills).                                  |
+| `subagents`    | Helper agents it can hand work to. See [Subagents](/docs/guides/subagents).                        |
+| `instructions` | What you want it to do, in plain words.                                                            |
+| `input`        | What you will give it.                                                                             |
+| `output`       | What you want back.                                                                                |
+
+Anything you leave out falls back to the [defaults in your config](/docs/entry-and-config).
+
+## Writing good instructions
+
+Instructions are just plain words. Write them like you are talking to a smart
+assistant. Use the `|` symbol to write more than one line:
+
+```yaml
+instructions: |
+  You estimate a person's age from clues.
+  Use the current_year tool whenever a clue mentions a date.
+  Give one clear answer with a short reason.
+```
+
+## Input and output
+
+`input` is what you give the agent. `output` is the shape of the answer you want
+back. Each one is a list of fields with a type:
+
+```yaml
+input:
+  clues: string
+output:
+  age: number
+  reason: string
+```
+
+The common types are `string` (text), `number`, `boolean` (true or false), and
+`object`.
+
+When you set an `output`, NT makes the model reply in exactly that shape, and you
+get clean data back instead of a paragraph:
+
+```json
+{ "age": 39, "reason": "The first iPhone came out in 2007." }
+```
+
+<Callout title="Input is checked for you">
+  When you run the agent, NT checks your input matches the `input` shape before calling the model.
+  If you forget a field, it tells you right away.
+</Callout>
+
+## Running it
+
+```bash
+nt run age -i '{"clues":"graduated college in 2010"}'
+```
+
+See the [CLI reference](/docs/reference/cli) for every command and option.

@@ -1,0 +1,62 @@
+---
+title: Delegate to subagents
+description: A subagent is a helper your main agent can hand a smaller job to.
+---
+
+<img src="/delegate-to-subagents.png" alt="Delegate to subagents" className="nt-banner" />
+
+Sometimes one agent should focus on the big picture and let a specialist handle
+a small part. A **subagent** is that specialist. Your main agent can hand it a
+job and use the result.
+
+## Make a subagent
+
+A subagent looks just like an agent. It usually does one thing well:
+
+```yaml title="subagents/researcher.nt"
+subagent researcher
+  description: Finds the year an event happened.
+  instructions: |
+    Given a single event, reply with the year it happened, or a tight range,
+    and nothing else.
+```
+
+## Let your agent use it
+
+List the subagent under `subagents` on the main agent:
+
+```yaml
+agent age
+  model: anthropic/claude-sonnet-5
+  subagents:
+    - researcher
+  instructions: |
+    Guess the person's age. When a clue mentions an event, ask the researcher
+    for the year it happened, then use that.
+```
+
+Now the main agent can hand the "what year was this?" question to the researcher
+whenever it needs to.
+
+## How it works
+
+When you give an agent a subagent, NT quietly adds a way for it to call that
+helper. The main agent decides when to use it, sends over the small job, and gets
+the answer back to keep working.
+
+<Callout title="Good to know">
+  A subagent uses your project [defaults](/docs/entry-and-config) for things like its model, not the
+  main agent's settings. It does share the main agent's sandbox while it helps, so they work in the
+  same space.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card
+    title="Build a workflow"
+    href="/docs/guides/workflows"
+    description="Run a fixed set of steps in order."
+  />
+  <Card title="Create an agent" href="/docs/guides/agents" description="See every agent setting." />
+</Cards>
