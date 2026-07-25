@@ -1,0 +1,49 @@
+{
+  "name": "@age.nt/nt",
+  "version": "0.1.0",
+  "description": "The `nt` command-line interface for running NT agent ecosystems.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Kartik Mehta <kartikmehta202@gmail.com>",
+  "bin": {
+    "nt": "./bin/nt.mjs"
+  },
+  "imports": {
+    "#*": "./src/*.ts"
+  },
+  "keywords": [
+    "nt",
+    "ai",
+    "agents",
+    "cli",
+    "llm",
+    "anthropic",
+    "dsl",
+    "workflow"
+  ],
+  "homepage": "https://github.com/kartikmehta8/nt#readme",
+  "bugs": {
+    "url": "https://github.com/kartikmehta8/nt/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kartikmehta8/nt.git",
+    "directory": "packages/cli"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@age.nt/engine": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
