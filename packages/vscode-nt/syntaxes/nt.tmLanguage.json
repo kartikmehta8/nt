@@ -1,0 +1,125 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "NT",
+  "scopeName": "source.nt",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#import" },
+    { "include": "#declaration" },
+    { "include": "#blockScalarListItem" },
+    { "include": "#blockScalar" },
+    { "include": "#mapping" },
+    { "include": "#listItem" },
+    { "include": "#valueAtoms" }
+  ],
+  "repository": {
+    "import": {
+      "match": "^(import)\\b\\s+(\\S+)",
+      "captures": {
+        "1": { "name": "keyword.control.import.nt" },
+        "2": { "name": "string.unquoted.path.nt" }
+      }
+    },
+    "comment": {
+      "match": "(?:(?<=\\s)|^)(#).*$",
+      "name": "comment.line.number-sign.nt",
+      "captures": {
+        "1": { "name": "punctuation.definition.comment.nt" }
+      }
+    },
+    "declaration": {
+      "match": "^(agent|subagent|sandbox|tool|skill|workflow|provider|config)\\b(?:\\s+([A-Za-z0-9_-]+))?",
+      "captures": {
+        "1": { "name": "keyword.control.declaration.nt" },
+        "2": { "name": "entity.name.type.nt" }
+      }
+    },
+    "blockScalar": {
+      "begin": "^(\\s*)([A-Za-z_][A-Za-z0-9_.-]*)(\\s*:)\\s*(\\|-?|>-?)\\s*$",
+      "beginCaptures": {
+        "2": { "name": "entity.name.tag.nt" },
+        "3": { "name": "punctuation.separator.key-value.nt" },
+        "4": { "name": "keyword.operator.block-scalar.nt" }
+      },
+      "end": "^(?!\\1\\s|\\s*$)",
+      "contentName": "string.unquoted.block.nt"
+    },
+    "blockScalarListItem": {
+      "begin": "^(\\s*)-\\s+([A-Za-z_][A-Za-z0-9_.-]*)(\\s*:)\\s*(\\|-?|>-?)\\s*$",
+      "beginCaptures": {
+        "2": { "name": "entity.name.tag.nt" },
+        "3": { "name": "punctuation.separator.key-value.nt" },
+        "4": { "name": "keyword.operator.block-scalar.nt" }
+      },
+      "comment": "Content of a `- key: |` block is indented past the key (dash + at least two columns). Sibling keys align with the key, so they end the block.",
+      "end": "^(?!\\1\\s\\s\\s|\\s*$)",
+      "contentName": "string.unquoted.block.nt"
+    },
+    "mapping": {
+      "begin": "^(\\s*)(?:-\\s+)?([A-Za-z_][A-Za-z0-9_.-]*)(\\s*:)(?=\\s|$)",
+      "beginCaptures": {
+        "2": { "name": "entity.name.tag.nt" },
+        "3": { "name": "punctuation.separator.key-value.nt" }
+      },
+      "end": "$",
+      "patterns": [{ "include": "#valueAtoms" }]
+    },
+    "listItem": {
+      "match": "^(\\s*)(-)(?=\\s|$)",
+      "captures": {
+        "2": { "name": "punctuation.definition.list.begin.nt" }
+      }
+    },
+    "valueAtoms": {
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#env" },
+        { "include": "#dqstring" },
+        { "include": "#sqstring" },
+        { "include": "#constant" },
+        { "include": "#number" },
+        { "include": "#unquoted" }
+      ]
+    },
+    "env": {
+      "begin": "\\b(env)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "support.function.builtin.nt" },
+        "2": { "name": "punctuation.section.arguments.begin.nt" }
+      },
+      "end": "(\\))",
+      "endCaptures": {
+        "1": { "name": "punctuation.section.arguments.end.nt" }
+      },
+      "patterns": [
+        { "include": "#dqstring" },
+        { "include": "#sqstring" },
+        { "match": ",", "name": "punctuation.separator.arguments.nt" },
+        { "match": "[A-Za-z_][A-Za-z0-9_]*", "name": "variable.other.constant.nt" }
+      ]
+    },
+    "dqstring": {
+      "name": "string.quoted.double.nt",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [{ "match": "\\\\.", "name": "constant.character.escape.nt" }]
+    },
+    "sqstring": {
+      "name": "string.quoted.single.nt",
+      "begin": "'",
+      "end": "'"
+    },
+    "constant": {
+      "match": "(?<![\\w-])(true|false|null|~)(?![\\w-])",
+      "name": "constant.language.nt"
+    },
+    "number": {
+      "match": "(?<![\\w.-])-?[0-9]+(\\.[0-9]+)?(?![\\w.-])",
+      "name": "constant.numeric.nt"
+    },
+    "unquoted": {
+      "match": "\\S.*$",
+      "name": "string.unquoted.nt"
+    }
+  }
+}

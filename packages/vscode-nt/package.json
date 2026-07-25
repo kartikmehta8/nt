@@ -1,0 +1,57 @@
+{
+  "name": "vscode-nt",
+  "displayName": "NT (Agent Lang)",
+  "description": "Syntax highlighting and IntelliSense (go-to-definition, hover, completion, outline, references) for NT (.nt) agent-ecosystem files.",
+  "version": "0.2.1",
+  "publisher": "KartikMehta",
+  "license": "MIT",
+  "author": "Kartik Mehta <kartikmehta202@gmail.com>",
+  "homepage": "https://github.com/kartikmehta8/nt#readme",
+  "bugs": {
+    "url": "https://github.com/kartikmehta8/nt/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kartikmehta8/nt.git",
+    "directory": "packages/vscode-nt"
+  },
+  "keywords": [
+    "nt",
+    "agents",
+    "syntax-highlighting",
+    "language-server"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "scripts": {
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
+  },
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "nt",
+        "aliases": [
+          "NT",
+          "nt"
+        ],
+        "extensions": [
+          ".nt"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "nt",
+        "scopeName": "source.nt",
+        "path": "./syntaxes/nt.tmLanguage.json"
+      }
+    ]
+  }
+}
