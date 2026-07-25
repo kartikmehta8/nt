@@ -1,0 +1,8 @@
+# A specialist the age agent delegates date lookups to.
+
+subagent researcher
+  description: Pins down the calendar year of a named event or milestone.
+  thinking: medium
+  instructions: |
+    Given a single event or milestone, respond with the calendar year it
+    occurred, or a tight range, and nothing else.

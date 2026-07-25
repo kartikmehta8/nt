@@ -1,0 +1,40 @@
+# age.nt — the entry file for this ecosystem.
+# It imports every capability at the top, then wires them onto one agent.
+
+import ./config.nt
+import ./sandboxes.nt
+import ./skills.nt
+import ./tools.nt
+import ./workflows.nt
+import ./subagents/researcher.nt
+
+agent age
+  description: Estimates a person's most likely age from the clues provided.
+  model: anthropic/claude-sonnet-5
+  thinking: high
+  sandbox: workspace
+  skills:
+    - estimation
+  tools:
+    - current_year
+    - fs_write
+  subagents:
+    - researcher
+  instructions: |
+    You estimate a person's most likely age from the clues provided.
+    Call current_year whenever a clue implies a birth year or a relative date.
+    Delegate to the researcher subagent to pin down the year of any event a
+    clue references, such as a product launch or a graduation.
+    Follow the estimation skill's checklist, then commit to one integer.
+    Save your reasoning to notes.md with fs_write before you answer.
+  input:
+    clues:
+      type: string
+      description: Any details that hint at the person's age.
+  output:
+    age:
+      type: number
+      description: The single best age estimate.
+    reason:
+      type: string
+      description: A one-sentence justification.

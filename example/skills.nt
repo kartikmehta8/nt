@@ -1,0 +1,10 @@
+# A reusable checklist the agent loads for age estimation.
+
+skill estimation
+  description: A checklist for estimating a person's age from indirect clues.
+  instructions: |
+    When estimating an age:
+    1. Convert every clue to an approximate calendar year.
+    2. Anchor each year to a typical life stage such as school or retirement.
+    3. Measure the span from those anchors to the current year.
+    4. Reconcile conflicting clues, then commit to a single integer estimate.

@@ -1,0 +1,6 @@
+# The in-memory workspace the agent reads, writes, and runs commands in.
+
+sandbox workspace
+  description: In-memory workspace where the agent writes notes and runs commands.
+  type: virtual
+  cwd: /workspace

@@ -1,0 +1,20 @@
+# Project configuration: defaults and the language-model providers.
+
+config
+  target: node
+  entry: age
+  defaults:
+    model: anthropic/claude-sonnet-5
+    sandbox: workspace
+    thinking: medium
+    max_tokens: 8000
+  providers:
+    anthropic:
+      api: anthropic
+      api_key: env(ANTHROPIC_API_KEY)
+    ollama:
+      api: openai-completions
+      base_url: http://localhost:11434/v1
+      # The fallback here is ollama's dummy token, not a secret — never put a
+      # real key as a literal or an env() fallback; `nt validate` warns on both.
+      api_key: env(OLLAMA_API_KEY, ollama)

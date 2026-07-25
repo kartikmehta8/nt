@@ -1,0 +1,18 @@
+# A two-step workflow: pin down the year behind a clue, then estimate the age.
+
+workflow estimate_age
+  description: Research the year a clue refers to, then estimate an age from it.
+  agent: age
+  input:
+    clues: string
+  output:
+    estimate: object
+  steps:
+    - agent: researcher
+      prompt: "What calendar year does this clue point to: {clues}"
+      into: year
+    - prompt: |
+        Estimate the person's most likely age.
+        Clues: {clues}
+        Relevant year: {year}
+      into: estimate

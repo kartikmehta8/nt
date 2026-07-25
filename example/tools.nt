@@ -1,0 +1,6 @@
+# A custom shell tool that runs inside the agent's sandbox.
+
+tool current_year
+  description: Return the current four-digit calendar year.
+  type: shell
+  command: date +%Y
