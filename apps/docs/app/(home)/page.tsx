@@ -64,7 +64,7 @@ export default function HomePage() {
           <a
             className="nt-hcard nt-reveal"
             data-delay="1"
-            href="https://marketplace.visualstudio.com/items?itemName=age-nt.nt"
+            href="https://marketplace.visualstudio.com/items?itemName=KartikMehta.nt"
             target="_blank"
             rel="noreferrer"
           >
@@ -81,7 +81,7 @@ export default function HomePage() {
           <a
             className="nt-hcard nt-reveal"
             data-delay="2"
-            href="https://open-vsx.org/extension/age-nt/nt"
+            href="https://open-vsx.org/extension/KartikMehta/nt"
             target="_blank"
             rel="noreferrer"
           >

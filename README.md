@@ -13,8 +13,8 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 Editor support: install the **NT** extension from the
-[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=age-nt.nt)
-or [Open VSX](https://open-vsx.org/extension/age-nt/nt) (Cursor, Windsurf,
+[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=KartikMehta.nt)
+or [Open VSX](https://open-vsx.org/extension/KartikMehta/nt) (Cursor, Windsurf,
 VSCodium) for highlighting and IntelliSense.
 
 ## Example

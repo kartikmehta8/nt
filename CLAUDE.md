@@ -19,7 +19,7 @@ The engine has **zero runtime dependencies** and talks to the model over `fetch`
 - Language and product: `NT`; files use the `.nt` extension.
 - Engine library: `@age.nt/engine` (public API only through its `index.ts` barrel).
 - CLI package: `@age.nt/nt`; the installed command is `nt`.
-- Editor extension: published to the VS Code Marketplace (`age-nt.nt`) and to
+- Editor extension: published to the VS Code Marketplace (`KartikMehta.nt`) and to
   Open VSX (for Cursor, Windsurf, VSCodium, and other VS Code forks).
 - Built-in model providers: `anthropic` and `openai-completions`.
 - Preserve proper names for third-party dependencies: Anthropic, OpenAI, Ollama,
