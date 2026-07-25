@@ -1,0 +1,7 @@
+/.next/
+/.source/
+/node_modules/
+/out/
+/public/og/
+next-env.d.ts
+*.tsbuildinfo
