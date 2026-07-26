@@ -1,7 +1,8 @@
 /**
  * @file CLI entry point: parse arguments and dispatch to a command.
  *
- * `main` routes the first positional argument to the matching command handler,
+ * `main` routes the first positional argument to the matching command handler
+ * (`setup`, `validate`, `list`, `graph`, `up`, `run`, `chat`, `audit`),
  * renders `NtError`s as `✗ file:line: message`, and sets the process exit code.
  * Invoked by `bin/nt.mjs` and runnable directly via `node src/cli/main.ts`.
  */
@@ -11,6 +12,7 @@ import { cmdAudit } from "#audit";
 import { HELP, parseArgs } from "#args";
 import { cmdChat, cmdGraph, cmdList, cmdRun, cmdUp, cmdValidate } from "#commands";
 import { out, red } from "#format";
+import { cmdSetup } from "#setup";
 
 /**
  * @param argv The process arguments after the node binary and script.
@@ -23,6 +25,9 @@ export async function main(argv: string[]): Promise<void> {
       case undefined:
       case "help":
         out(HELP);
+        break;
+      case "setup":
+        cmdSetup(args);
         break;
       case "validate":
         cmdValidate(args);

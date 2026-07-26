@@ -16,6 +16,18 @@ Editor support: install the **NT** extension from the
 or [Open VSX](https://open-vsx.org/extension/KartikMehta/nt-agent-lang) (Cursor, Windsurf,
 VSCodium) for highlighting and IntelliSense.
 
+## Quick start
+
+```bash
+mkdir my-agent && cd my-agent
+nt setup            # writes age.nt + config.nt, then validates them
+nt run age -m "bought the first iPhone at 22"
+```
+
+`nt setup --template full` writes a bigger starter instead: the same agent wired
+to a sandbox, a tool, a skill, a subagent, and a workflow. Existing files are
+never overwritten unless you pass `--force`.
+
 ## Example
 
 A complete agent in one file:
@@ -65,6 +77,7 @@ example/            the wired age example
 
 ```bash
 pnpm install         # link @age.nt/engine into the nt CLI
+pnpm nt:setup        # scaffold the full starter into .nt-demo/ (gitignored)
 pnpm nt:validate     # validate the example ecosystem
 pnpm test            # engine + CLI tests
 pnpm typecheck

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.nt-demo/
 *.vsix
 *.local.ts
 *.local.mts

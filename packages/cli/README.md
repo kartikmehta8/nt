@@ -26,7 +26,18 @@ export ANTHROPIC_API_KEY=sk-ant-...
 
 ## Quick start
 
-Create a file called `age.nt`:
+Let `nt` write a working project for you:
+
+```bash
+mkdir my-agent && cd my-agent
+nt setup                 # writes age.nt + config.nt, then checks them
+nt setup --template full # or: a sandbox, tool, skill, subagent and workflow too
+```
+
+Existing files are never overwritten — they are reported and left alone unless
+you pass `--force`.
+
+Or start by hand. Create a file called `age.nt`:
 
 ```yaml
 agent age
@@ -60,6 +71,7 @@ nt chat age
 
 | Command          | What it does                                             |
 | ---------------- | -------------------------------------------------------- |
+| `nt setup [dir]` | Write a starter project into a folder (created if new).  |
 | `nt validate`    | Parse and type-check every `.nt` file.                   |
 | `nt list`        | List everything declared in your project.                |
 | `nt graph`       | Show how agents wire to their tools, skills and helpers. |
@@ -68,8 +80,8 @@ nt chat age
 | `nt chat <name>` | Chat with an agent, back and forth.                      |
 | `nt audit`       | Show where tool calls are logged, and the recent ones.   |
 
-`validate`, `list`, `graph`, and `audit` work offline; `up`, `run`, and `chat`
-call the model and need a provider key.
+`setup`, `validate`, `list`, `graph`, and `audit` work offline; `up`, `run`, and
+`chat` call the model and need a provider key.
 
 ## Options
 
@@ -82,6 +94,8 @@ call the model and need a provider key.
 | `--run NAME`         | With `up`, run this agent or workflow after bring-up.                 |
 | `-n, --tail N`       | With `audit`, how many recent tool calls to show (default 20).        |
 | `--json`             | With `audit`, print the raw JSONL entries only.                       |
+| `-t, --template`     | With `setup`, the starter to write: `minimal` (default) or `full`.    |
+| `--force`            | With `setup`, replace files that already exist.                       |
 | `-v, --verbose`      | Print the agent / tool / delegation trace.                            |
 | `-h, --help`         | Show help.                                                            |
 

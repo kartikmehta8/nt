@@ -1,12 +1,12 @@
 ---
 title: Installation
-description: Install the nt command, set your AI key, and check that everything works.
+description: Install the nt command, set your AI key, and create your first project.
 ---
 
 <img src="/installation.png" alt="Installation" className="nt-banner" />
 
-Getting NT ready takes three small steps: install it, set your AI key, and check
-it works.
+Getting NT ready takes four small steps: install it, set your AI key, check it
+works, and create a project.
 
 ## Step 1: Install the CLI
 
@@ -71,10 +71,41 @@ files works without a key.
 
 ```bash
 nt --help
-nt --version
 ```
 
-If you see the help text and a version number, you are ready.
+If you see the list of commands, you are ready.
+
+## Step 4: Create a project
+
+`nt setup` writes a small working project into the current folder, so you never
+start from a blank file:
+
+```bash
+mkdir my-agent && cd my-agent
+nt setup
+```
+
+```text
+Setting up an NT project in /Users/you/my-agent
+  template: minimal
+  + age.nt
+  + config.nt
+
+✓ 2 file(s) OK
+
+Next steps
+  1. export ANTHROPIC_API_KEY=sk-ant-...
+  2. nt run age -m "bought the first iPhone at 22"
+```
+
+`age.nt` holds the agent and `config.nt` holds your settings and AI provider.
+Run that last line and you have a working agent.
+
+<Callout title="Want to see everything at once?">
+  `nt setup --template full` writes a bigger starter with a tool, a skill, a sandbox, a helper
+  agent, and a workflow — one of each, in its own file. See [CLI
+  commands](/docs/reference/cli#starting-a-project).
+</Callout>
 
 ## Downloads
 

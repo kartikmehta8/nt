@@ -2,13 +2,14 @@
  * @file Command-line argument parsing and help text.
  *
  * Parses flags into `Args` (the `--file`/`--dir` path, `--input`/`--message`,
- * `--run`, `--tail`, `--json`, `--verbose`), derives the run input from `--input`
- * JSON or the `--message` shorthand, and holds the `--help` text.
+ * `--run`, `--tail`, `--json`, `--template`, `--force`, `--verbose`), derives the
+ * run input from `--input` JSON or the `--message` shorthand, and holds the
+ * `--help` text.
  */
 
 import * as fs from "node:fs";
 import * as nodePath from "node:path";
-import { NtError } from "@age.nt/engine";
+import { DEFAULT_TEMPLATE, NtError, TEMPLATE_NAMES } from "@age.nt/engine";
 
 export const DEFAULT_ENTRY = "age.nt";
 
@@ -23,6 +24,8 @@ export interface Args {
   json: boolean;
   verbose: boolean;
   allowOutsideImports: boolean;
+  template?: string;
+  force: boolean;
 }
 
 export const HELP = `nt — run ecosystems of agents defined in .nt files
@@ -31,6 +34,7 @@ USAGE
   nt <command> [options]
 
 COMMANDS
+  setup [DIR]         Write a starter project (${DEFAULT_ENTRY}, config.nt, …) into DIR
   validate            Parse and type-check every .nt file
   list                List all defined agents, subagents, tools, etc.
   graph               Show how agents wire to subagents, tools and sandboxes
@@ -48,6 +52,8 @@ OPTIONS
       --run NAME      With 'up': run this agent/workflow after bring-up
   -n, --tail N        With 'audit': how many recent entries to show (default 20)
       --json          With 'audit': print the raw JSONL entries only
+  -t, --template NAME With 'setup': ${TEMPLATE_NAMES.join(" or ")} (default ${DEFAULT_TEMPLATE})
+      --force         With 'setup': overwrite files that already exist
       --allow-outside-imports  Permit imports outside the project directory
   -v, --verbose       Print the agent/tool trace to stderr
   -h, --help          Show this help
@@ -92,6 +98,7 @@ export function parseArgs(argv: string[]): Args {
     json: false,
     verbose: false,
     allowOutsideImports: false,
+    force: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -105,6 +112,8 @@ export function parseArgs(argv: string[]): Args {
     else if (arg === "--message" || arg === "-m") args.message = requireValue(argv, arg, i++);
     else if (arg === "--run") args.run = requireValue(argv, arg, i++);
     else if (arg === "--tail" || arg === "-n") args.tail = requireCount(argv, arg, i++);
+    else if (arg === "--template" || arg === "-t") args.template = requireValue(argv, arg, i++);
+    else if (arg === "--force") args.force = true;
     else if (arg === "--json") args.json = true;
     else if (arg === "--allow-outside-imports") args.allowOutsideImports = true;
     else if (arg === "--verbose" || arg === "-v") args.verbose = true;

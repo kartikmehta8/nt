@@ -3,9 +3,9 @@
  *
  * Re-exports the surface consumers (such as the `nt` CLI) depend on: the
  * `Engine`, the `loadProject` / `discoverNtFiles` loaders, the `ChatSession`,
- * the audit-log readers, the `NtError` type, and the typed project/definition
- * shapes. Internal modules remain private behind the package's `#` subpath
- * imports.
+ * the audit-log readers, the `scaffoldProject` starter-project writer, the
+ * `NtError` type, and the typed project/definition shapes. Internal modules
+ * remain private behind the package's `#` subpath imports.
  */
 
 export { Engine } from "#engine";
@@ -18,6 +18,10 @@ export type { LoadOptions } from "#loader";
 export type { BuildResult } from "#schema/build";
 export { ChatSession } from "#chat";
 export { NtError } from "#errors";
+export { scaffoldProject } from "#scaffold/write";
+export type { ScaffoldOptions, ScaffoldResult } from "#scaffold/write";
+export { DEFAULT_TEMPLATE, SCAFFOLD_ENTRY_FILE, TEMPLATE_NAMES } from "#scaffold/templates";
+export type { TemplateName } from "#scaffold/templates";
 export type {
   AgentDef,
   AuditConfig,
@@ -32,6 +36,7 @@ export type {
   ProviderDef,
   RunResult,
   SandboxDef,
+  ScaffoldFile,
   SkillDef,
   ThinkingLevel,
   ToolDef,

@@ -9,6 +9,7 @@
   },
   "packageManager": "pnpm@9.15.0",
   "scripts": {
+    "nt:setup": "node packages/cli/bin/nt.mjs setup .nt-demo --template full",
     "nt:validate": "node packages/cli/bin/nt.mjs validate --file example/age.nt",
     "nt:list": "node packages/cli/bin/nt.mjs list --file example/age.nt",
     "nt:graph": "node packages/cli/bin/nt.mjs graph --file example/age.nt",

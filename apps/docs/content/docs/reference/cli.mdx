@@ -22,6 +22,7 @@ nt <command> [options]
 
 | Command          | What it does                                             |
 | ---------------- | -------------------------------------------------------- |
+| `nt setup [dir]` | Write a starter project into a folder.                   |
 | `nt validate`    | Check your files for mistakes.                           |
 | `nt list`        | List everything in your project.                         |
 | `nt graph`       | Show how your agents connect to their tools and helpers. |
@@ -41,8 +42,69 @@ nt <command> [options]
 | `--run NAME`         | With `up`, run this agent or workflow after setup.                           |
 | `-n, --tail N`       | With `audit`, how many recent calls to show. Defaults to 20.                 |
 | `--json`             | With `audit`, print the raw JSONL lines and nothing else.                    |
+| `-t, --template`     | With `setup`, which starter to write: `minimal` or `full`.                   |
+| `--force`            | With `setup`, replace files that already exist.                              |
 | `-v, --verbose`      | Show extra detail about what the agent is doing.                             |
 | `-h, --help`         | Show help.                                                                   |
+
+## Starting a project
+
+`nt setup` writes a small, working project so you never start from an empty
+file. Run it in the folder you want to work in:
+
+```bash
+nt setup
+```
+
+Or name a folder, and NT creates it for you:
+
+```bash
+nt setup my-agent
+```
+
+```text
+$ nt setup my-agent
+Setting up an NT project in /Users/you/my-agent
+  template: minimal
+  + age.nt
+  + config.nt
+
+✓ 2 file(s) OK
+
+Next steps
+  1. cd my-agent
+  2. export ANTHROPIC_API_KEY=sk-ant-...
+  3. nt run age -m "bought the first iPhone at 22"
+```
+
+### The two starters
+
+| Template            | What you get                                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `minimal` (default) | `age.nt` with one agent, and `config.nt` with your settings and provider.                                        |
+| `full`              | The same agent wired to one of everything: a sandbox, a tool, a skill, a subagent, and a workflow — seven files. |
+
+```bash
+nt setup --template full
+```
+
+```text
+age.nt                    the entry file: imports + the main agent
+config.nt                 settings, defaults, and the provider
+sandboxes.nt              the workspace the agent writes in
+skills.nt                 a reusable checklist
+tools.nt                  a custom shell tool
+subagents/researcher.nt   a helper agent
+workflows.nt              a two-step pipeline
+```
+
+Whatever it writes is checked before it finishes, so a fresh project always
+passes `nt validate`.
+
+<Callout title="It never overwrites your work">
+  Files that already exist are left exactly as they are and listed as skipped. Add `--force` when
+  you really do want the starter versions back.
+</Callout>
 
 ## Checking your work
 
@@ -117,5 +179,5 @@ Set `audit` in your `config` block to change the folder or turn logging off. See
 
 <Callout title="Which commands need an AI key">
   `up`, `run`, and `chat` talk to a real model, so they need your key set (for example
-  `ANTHROPIC_API_KEY`). `validate`, `list`, `graph`, and `audit` do not.
+  `ANTHROPIC_API_KEY`). `setup`, `validate`, `list`, `graph`, and `audit` do not.
 </Callout>

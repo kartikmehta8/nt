@@ -183,19 +183,25 @@ export default function HomePage() {
               <span className="dim"> + @age.nt/nt · ready</span>
             </div>
             <div className="nt-term-line" style={{ animationDelay: "260ms" }}>
+              <span className="p">$</span> nt setup
+            </div>
+            <div className="nt-term-line" style={{ animationDelay: "380ms" }}>
+              <span className="dim"> + age.nt + config.nt · 2 file(s) OK</span>
+            </div>
+            <div className="nt-term-line" style={{ animationDelay: "520ms" }}>
               <span className="p">$</span> nt run age <span className="fl">-m</span>{" "}
               <span className="s">&quot;bought the first iPhone at 22&quot;</span>
             </div>
-            <div className="nt-term-line" style={{ animationDelay: "420ms" }}>
+            <div className="nt-term-line" style={{ animationDelay: "660ms" }}>
               <span className="dim"> age → researcher → current_year</span>
             </div>
-            <div className="nt-term-line" style={{ animationDelay: "580ms" }}>
+            <div className="nt-term-line" style={{ animationDelay: "800ms" }}>
               <span className="dim">{"{"}</span> <span className="k">age</span>:{" "}
               <span className="n">39</span>, <span className="k">reason</span>:{" "}
               <span className="s">&quot;iPhone launched in 2007&quot;</span>{" "}
               <span className="dim">{"}"}</span>
             </div>
-            <div className="nt-term-line" style={{ animationDelay: "720ms" }}>
+            <div className="nt-term-line" style={{ animationDelay: "940ms" }}>
               <span className="p">$</span>
               <span className="nt-term-caret" />
             </div>

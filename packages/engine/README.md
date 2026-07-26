@@ -47,6 +47,19 @@ const result = await engine.runWorkflow("estimate_age", {
 });
 ```
 
+### Scaffold a starter project
+
+```ts
+import { scaffoldProject } from "@age.nt/engine";
+
+const result = scaffoldProject("./my-agent", { template: "full" });
+console.log(result.created); // ["age.nt", "config.nt", "sandboxes.nt", …]
+console.log(result.skipped); // files that already existed and were left alone
+console.log(result.entry); // absolute path to the entry age.nt
+```
+
+Nothing is overwritten unless you pass `{ force: true }`.
+
 ### Load and inspect a project (offline, no model calls)
 
 ```ts
@@ -68,6 +81,8 @@ Everything is exported from the package barrel:
 | `loadProject`      | Parse + build + validate into a typed `Project` (offline). |
 | `discoverNtFiles`  | Find every `.nt` file under a directory.                   |
 | `ChatSession`      | Stateful, multi-turn conversation with an agent.           |
+| `scaffoldProject`  | Write a starter project (`minimal` or `full`) to a folder. |
+| `TEMPLATE_NAMES`   | The starter templates `scaffoldProject` accepts.           |
 | `readAuditEntries` | Read recent tool-call entries out of an audit folder.      |
 | `auditFiles`       | List the audit log files in a folder, oldest first.        |
 | `NtError`          | Error type carrying a source `Location`.                   |

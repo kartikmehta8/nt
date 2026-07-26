@@ -5,8 +5,9 @@
  * parses into, and the typed definitions the schema layer produces (`AgentDef`
  * — used for both agents and subagents, `SandboxDef`, `ToolDef`, `SkillDef`,
  * `WorkflowDef`, `ProviderDef`, `ConfigDef`, `AuditConfig`), plus the assembled
- * `Project` and the `RunResult` / `TokenUsage` shapes the engine returns. Types
- * only; the entire module is erased at runtime.
+ * `Project`, the `RunResult` / `TokenUsage` shapes the engine returns, and the
+ * `ScaffoldFile` a starter template is made of. Types only; the entire module is
+ * erased at runtime.
  */
 
 export type Scalar = string | number | boolean | null;
@@ -168,4 +169,9 @@ export interface RunResult {
 export interface TokenUsage {
   input: number;
   output: number;
+}
+
+export interface ScaffoldFile {
+  path: string;
+  content: string;
 }

@@ -31,6 +31,7 @@ The engine has **zero runtime dependencies** and talks to the model over `fetch`
 ```bash
 pnpm install         # links @age.nt/engine into the nt CLI (no build step)
 
+pnpm nt:setup        # scaffold the full starter template into .nt-demo/ (gitignored)
 pnpm nt:validate     # parse + type-check every .nt file (root scripts target example/age.nt)
 pnpm nt:list         # list all declared entities
 pnpm nt:graph        # show how agents wire to subagents / tools / sandboxes
@@ -76,8 +77,9 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 ### Engine (packages/engine)
 
 - **Public surface is `src/index.ts` only** — `Engine`, `loadProject`,
-  `discoverNtFiles`, `ChatSession`, `NtError`, and the typed `Project` /
-  definition shapes. Everything else stays private behind `#` subpath imports.
+  `discoverNtFiles`, `ChatSession`, `scaffoldProject`, `NtError`, and the typed
+  `Project` / definition shapes. Everything else stays private behind `#` subpath
+  imports.
 - **Four phases, in order:** load (discover `.nt`, parse to blocks in `parse/`)
   → build (`schema/`: coerce → declarations → build → validate into a typed
   `Project`, validating references and collecting warnings) → bring up
@@ -89,6 +91,12 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
   defaults/limits (`DEFAULT_MAX_TOKENS`, `MAX_AGENT_STEPS` = 12,
   `MAX_DELEGATION_DEPTH` = 6, `HTTP_TOOL_TIMEOUT_MS`, `DEFAULT_AUDIT_DIR`, …).
   Never duplicate these.
+- **`scaffold/` holds the starter projects `nt setup` writes**: `templates.ts`
+  registers them (`minimal`, `full`) and rejects unknown names, `minimal.ts` and
+  `full.ts` hold the `.nt` source as data, and `write.ts` creates the folder and
+  writes each file exclusively — an existing file is reported as skipped, never
+  clobbered, unless `force` is set. Templates must load with zero warnings; the
+  scaffold test enforces that.
 - **`audit/` writes the tool-call log**: `config.ts` resolves `config.audit`
   (`off` or a folder) into `AuditConfig`, `redact.ts` strips credentials, and
   `log.ts` appends one JSONL line per tool call plus the reader `nt audit` uses.
@@ -120,10 +128,13 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 
 - Thin layer over `@age.nt/engine`: `args.ts` (flags + help), `commands.ts`
   (`validate` / `list` / `graph` / `up` / `run` / `chat`), `audit.ts` (`audit`),
-  `format.ts` (colored output), `main.ts`; `bin/nt.mjs` is the launcher.
+  `setup.ts` (`setup`), `format.ts` (colored output), `main.ts`; `bin/nt.mjs` is
+  the launcher.
 - **Defaults to `./age.nt` in the current directory**; `--file` / `--dir`
   override. `up` / `run` / `chat` call the model (need `ANTHROPIC_API_KEY`);
-  `validate` / `list` / `graph` / `audit` are offline.
+  `setup` / `validate` / `list` / `graph` / `audit` are offline.
+- **`setup [dir]` scaffolds a project** through the engine, then loads the result
+  so a fresh project is proven valid before the next steps are printed.
 
 ### VS Code extension (packages/vscode-nt)
 
