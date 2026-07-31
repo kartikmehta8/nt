@@ -1,6 +1,6 @@
 {
   "name": "@age.nt/nt",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The `nt` command-line interface for running NT agent ecosystems.",
   "type": "module",
   "license": "MIT",
