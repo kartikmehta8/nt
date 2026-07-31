@@ -19,31 +19,35 @@ jobs:
     defaults:
       run:
         working-directory: packages/vscode-nt
-    # Lifted to job level so it is visible to step-level `if:` conditions;
-    # a step's own `env:` block is NOT available to that step's `if:`.
-    env:
-      OVSX_PAT: ${{ secrets.OVSX_PAT }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.18.0
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
 
       - name: Package extension
-        run: npx --yes @vscode/vsce package --no-dependencies
+        run: pnpm exec vsce package --no-dependencies
 
       - name: Publish to VS Code Marketplace
-        run: npx --yes @vscode/vsce publish --no-dependencies --packagePath *.vsix
+        run: pnpm exec vsce publish --no-dependencies --packagePath *.vsix
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
       - name: Ensure Open VSX namespace exists
-        if: ${{ env.OVSX_PAT != '' }}
+        if: ${{ secrets.OVSX_PAT != '' }}
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
           PUBLISHER=$(node -p "require('./package.json').publisher")
-          npx --yes ovsx create-namespace "$PUBLISHER" --pat "$OVSX_PAT" || \
+          pnpm exec ovsx create-namespace "$PUBLISHER" --pat "$OVSX_PAT" || \
             echo "Namespace '$PUBLISHER' already exists, continuing."
 
       - name: Publish to Open VSX
-        if: ${{ env.OVSX_PAT != '' }}
-        run: npx --yes ovsx publish *.vsix --pat "$OVSX_PAT"
+        if: ${{ secrets.OVSX_PAT != '' }}
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: pnpm exec ovsx publish *.vsix --pat "$OVSX_PAT"
