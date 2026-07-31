@@ -6,3 +6,4 @@ packages/vscode-nt/syntaxes/
 apps/docs/.next/
 apps/docs/.source/
 apps/docs/next-env.d.ts
+.deepsec/
