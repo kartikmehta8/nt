@@ -146,11 +146,31 @@ function apiKeyFor(def: ProviderDef): string | null {
 }
 
 /**
+ * Reads the body as a stream and stops at a byte cap, so a hostile endpoint
+ * cannot force the process to buffer an arbitrarily large error response.
+ *
  * @param res A failed provider response.
  * @returns The response body truncated to a size safe to embed in an error message.
  */
 async function errorBody(res: Response): Promise<string> {
-  const text = await res.text();
+  if (!res.body) return "";
+  const maxBytes = MAX_ERROR_BODY_CHARS * 4;
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      total += value.length;
+    }
+  } catch {
+    return "";
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+  const text = Buffer.concat(chunks).toString("utf8");
   return text.length > MAX_ERROR_BODY_CHARS ? text.slice(0, MAX_ERROR_BODY_CHARS) + "…" : text;
 }
 

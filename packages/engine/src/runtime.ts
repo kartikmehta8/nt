@@ -31,6 +31,7 @@ export interface AgentRuntime {
   thinking: ThinkingLevel;
   maxTokens: number;
   tools: LlmToolDef[];
+  allowedTools: Set<string>;
   outputSchema: Record<string, unknown> | null;
 }
 
@@ -47,13 +48,15 @@ export interface TurnResult {
  */
 export function buildRuntime(context: RunContext, agent: AgentDef): AgentRuntime {
   const defaults = context.project.config.defaults;
+  const tools = buildToolDefs(context.project, agent);
   return {
     name: agent.name,
     model: resolveModel(context.project, agent),
     system: buildSystemPrompt(context.project, agent),
     thinking: agent.thinking ?? defaults.thinking ?? DEFAULT_THINKING,
     maxTokens: agent.maxTokens ?? defaults.maxTokens ?? DEFAULT_MAX_TOKENS,
-    tools: buildToolDefs(context.project, agent),
+    tools,
+    allowedTools: new Set(tools.map((t) => t.name)),
     outputSchema: agent.output.length ? buildOutputSchema(agent.output) : null,
   };
 }

@@ -18,9 +18,11 @@ import {
   AUDIT_FILE_MODE,
   AUDIT_FILE_PREFIX,
   AUDIT_MAX_OUTPUT_CHARS,
+  AUDIT_TAIL_BYTES_PER_ENTRY,
+  AUDIT_TAIL_MAX_BYTES,
+  DELEGATE_PREFIX,
   isBuiltinTool,
 } from "#constants";
-import { DELEGATE_PREFIX } from "#tools";
 import type { Project } from "#types";
 
 export type AuditToolKind = "builtin" | "custom" | "delegate" | "unknown";
@@ -82,7 +84,8 @@ export class AuditLog {
   }
 
   /**
-   * @param record One completed tool call.
+   * @param record One completed tool call; the model-controlled tool name is
+   * redacted like input and output.
    * @returns The entry that was appended, or null when logging is unavailable.
    */
   record(record: AuditRecord): AuditEntry | null {
@@ -93,7 +96,7 @@ export class AuditLog {
       run: record.run,
       agent: record.agent,
       depth: record.depth,
-      tool: record.tool,
+      tool: this.redactor.text(record.tool),
       kind: record.kind,
       input: redacted.input,
       ok: record.ok,
@@ -153,6 +156,27 @@ export function auditFiles(dir: string): string[] {
 }
 
 /**
+ * @param file The audit file to tail.
+ * @param maxLines The most lines the caller will consume.
+ * @returns The file's trailing lines, read as one bounded region from the end.
+ */
+function readTailLines(file: string, maxLines: number): string[] {
+  const maxBytes = Math.min(AUDIT_TAIL_MAX_BYTES, (maxLines + 1) * AUDIT_TAIL_BYTES_PER_ENTRY);
+  const fd = fs.openSync(file, "r");
+  try {
+    const size = fs.fstatSync(fd).size;
+    const start = Math.max(0, size - maxBytes);
+    const buffer = Buffer.alloc(size - start);
+    fs.readSync(fd, buffer, 0, buffer.length, start);
+    const lines = buffer.toString("utf8").split("\n");
+    if (start > 0) lines.shift();
+    return lines;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
  * @param dir The audit folder to read.
  * @param limit The most entries to return.
  * @returns The most recent entries, oldest first; unparseable lines are skipped.
@@ -163,7 +187,7 @@ export function readAuditEntries(dir: string, limit: number): AuditEntry[] {
   for (let i = files.length - 1; i >= 0 && collected.length < limit; i--) {
     let lines: string[];
     try {
-      lines = fs.readFileSync(files[i], "utf8").split("\n");
+      lines = readTailLines(files[i], limit - collected.length);
     } catch {
       continue;
     }

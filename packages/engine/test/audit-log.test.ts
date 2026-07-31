@@ -11,6 +11,7 @@ import * as os from "node:os";
 import * as nodePath from "node:path";
 import { afterEach, beforeEach, test } from "node:test";
 import { AuditLog, auditToolKind, openAuditLog, readAuditEntries } from "#audit/log";
+import { createRedactor } from "#audit/redact";
 import { parseNt } from "#parse/parser";
 import { buildProject } from "#schema/build";
 
@@ -179,4 +180,38 @@ test("auditToolKind separates built-ins, custom tools, delegation, and unknowns"
   assert.equal(auditToolKind(project, "t"), "custom");
   assert.equal(auditToolKind(project, "delegate_to_researcher"), "delegate");
   assert.equal(auditToolKind(project, "nope"), "unknown");
+});
+
+test("a model-controlled tool name is redacted before it reaches the log", () => {
+  const logDir = nodePath.join(dir, "audit");
+  const log = new AuditLog(logDir, createRedactor(["hunter2-secret-value"]));
+  log.record({
+    run: "run-1",
+    agent: "age",
+    depth: 0,
+    tool: "exfil_hunter2-secret-value",
+    kind: "unknown",
+    input: {},
+    ok: false,
+    durationMs: 1,
+    output: "",
+  });
+  log.record({
+    run: "run-1",
+    agent: "age",
+    depth: 0,
+    tool: "sk-abcdefghijklmnop1234",
+    kind: "unknown",
+    input: {},
+    ok: false,
+    durationMs: 1,
+    output: "",
+  });
+  const entries = readAuditEntries(logDir, 10);
+  assert.equal(entries.length, 2);
+  for (const entry of entries) {
+    assert.ok(!entry.tool.includes("hunter2-secret-value"), "literal secret must not be logged");
+    assert.ok(!entry.tool.includes("sk-abcdefghijklmnop1234"), "token shape must not be logged");
+    assert.ok(entry.tool.includes("[redacted]"));
+  }
 });

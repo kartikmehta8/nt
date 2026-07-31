@@ -7,7 +7,8 @@
  * environment values are expected.
  */
 
-import { DEFAULT_SANDBOX_CWD } from "#constants";
+import { isIP } from "node:net";
+import { DEFAULT_SANDBOX_CWD, DELEGATE_PREFIX, isBuiltinTool } from "#constants";
 import { NtError } from "#errors";
 import {
   isEnvRef,
@@ -73,6 +74,13 @@ export function parseTool(
   warnings: string[],
 ): ToolDef {
   if (!name) throw new NtError("tool declaration requires a name", loc);
+  if (isBuiltinTool(name))
+    throw new NtError(`tool name '${name}' is reserved for the built-in tool`, loc);
+  if (name.startsWith(DELEGATE_PREFIX))
+    throw new NtError(
+      `tool name '${name}' is reserved: the '${DELEGATE_PREFIX}' prefix is used for subagent delegation`,
+      loc,
+    );
   const fields = [
     "description",
     "type",
@@ -237,7 +245,7 @@ function checkBaseUrl(baseUrl: string, loc: Location): void {
   const local =
     host === "localhost" ||
     host === "::1" ||
-    host.startsWith("127.") ||
+    (isIP(host) === 4 && host.startsWith("127.")) ||
     host.endsWith(".localhost");
   if (parsed.protocol !== "https:" && !local)
     throw new NtError(
@@ -268,6 +276,8 @@ export function parseProvider(
   const baseUrl = optStr(body.base_url, "provider.base_url", loc);
   if (baseUrl) checkBaseUrl(baseUrl, loc);
   const headers: Record<string, string> = {};
+  if (body.headers !== undefined && !isMap(body.headers))
+    throw new NtError("provider.headers must be a map", loc);
   if (body.headers !== undefined && isMap(body.headers))
     for (const [k, v] of Object.entries(body.headers)) {
       if (AUTH_HEADER_NAMES.has(k.toLowerCase()))

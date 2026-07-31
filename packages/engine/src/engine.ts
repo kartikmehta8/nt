@@ -96,7 +96,7 @@ export class Engine {
     this.checkInput(workflow.input, input, `workflow '${name}'`, workflow.loc);
     this.log(`▶ running workflow '${name}' (${workflow.steps.length} steps)`);
 
-    const vars: Record<string, unknown> = { ...input };
+    const vars = this.seedWorkflowVars(workflow.input, input);
     const usage = { input: 0, output: 0 };
     const context = this.context();
     let steps = 0;
@@ -186,6 +186,21 @@ export class Engine {
           loc: agent.loc,
         };
     return makeSandbox(def);
+  }
+
+  /**
+   * Seeds `vars` from the declared `input:` fields and the bare `message`
+   * shorthand only, so undeclared caller keys cannot preseed step placeholders
+   * or spoof declared outputs.
+   */
+  private seedWorkflowVars(
+    fields: FieldSpec[],
+    input: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const vars: Record<string, unknown> = {};
+    for (const f of fields) if (f.name in input) vars[f.name] = input[f.name];
+    if (!("message" in vars) && typeof input.message === "string") vars.message = input.message;
+    return vars;
   }
 
   private resolveWorkflowAgent(workflow: string, agentName: string | null): AgentDef {

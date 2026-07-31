@@ -7,7 +7,7 @@
  * delegate.
  */
 
-import { isBuiltinTool, type BuiltinToolName } from "#constants";
+import { DELEGATE_PREFIX, isBuiltinTool, type BuiltinToolName } from "#constants";
 import { buildInputSchema } from "#io";
 import type { LlmToolDef } from "#provider";
 import type { AgentDef, Project } from "#types";
@@ -48,7 +48,7 @@ const BUILTIN_SCHEMAS: Record<BuiltinToolName, LlmToolDef> = {
   },
 };
 
-export const DELEGATE_PREFIX = "delegate_to_";
+export { DELEGATE_PREFIX };
 
 /**
  * @param project The project the agent belongs to.

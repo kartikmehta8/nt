@@ -11,6 +11,7 @@
 
 import { auditToolKind } from "#audit/log";
 import {
+  DELEGATE_PREFIX,
   isBuiltinTool,
   MAX_AGENT_STEPS,
   MAX_DELEGATION_DEPTH,
@@ -28,7 +29,6 @@ import {
   type TurnResult,
 } from "#runtime";
 import type { Sandbox } from "#sandbox";
-import { DELEGATE_PREFIX } from "#tools";
 import type { AgentDef, RunResult, TokenUsage } from "#types";
 
 /**
@@ -68,7 +68,7 @@ export async function driveConversation(
     if (response.stopReason !== "tool_use") break;
     messages.push({
       role: "user",
-      content: await runToolCalls(context, runtime.name, sandbox, response.content, depth),
+      content: await runToolCalls(context, runtime, sandbox, response.content, depth),
     });
   }
   return { text: lastText, steps, usage };
@@ -98,11 +98,15 @@ export async function runSession(
 }
 
 /**
+ * Tool names in the response are untrusted: only names the runtime offered
+ * this agent are dispatched, so a hostile response cannot reach capabilities
+ * the agent was not wired to.
+ *
  * @returns The tool_result blocks produced by executing every tool_use in a response.
  */
 async function runToolCalls(
   context: RunContext,
-  agentName: string,
+  runtime: AgentRuntime,
   sandbox: Sandbox,
   content: ContentBlock[],
   depth: number,
@@ -112,12 +116,14 @@ async function runToolCalls(
     if (block.type !== "tool_use") continue;
     const name = block.name!;
     const input = block.input ?? {};
-    context.log(`  ${"  ".repeat(depth)}· ${agentName} → ${name}(${JSON.stringify(input)})`);
+    context.log(`  ${"  ".repeat(depth)}· ${runtime.name} → ${name}(${JSON.stringify(input)})`);
     const startedAt = Date.now();
-    const outcome = await dispatchTool(context, sandbox, name, input, depth);
+    const outcome = runtime.allowedTools.has(name)
+      ? await dispatchTool(context, sandbox, name, input, depth)
+      : { content: `tool '${name}' is not available to this agent`, isError: true };
     context.audit?.record({
       run: context.runId,
-      agent: agentName,
+      agent: runtime.name,
       depth,
       tool: name,
       kind: auditToolKind(context.project, name),

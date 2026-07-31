@@ -209,3 +209,52 @@ test("a session with logging off writes nothing", async () => {
   );
   assert.deepEqual(fs.readdirSync(dir), []);
 });
+
+test("a tool the agent was not granted is refused at dispatch and audited", async () => {
+  const { project } = build(
+    `config\n  audit: ${dir}\n  defaults:\n    model: anthropic/claude-sonnet-5\n` +
+      "subagent helper:\n  description: helps\n" +
+      "agent a:\n  tools: [fs_read]\n",
+  );
+  const agent = agentOf(project, "a");
+  const context: RunContext = {
+    project,
+    registry: fakeRegistry([
+      {
+        content: [
+          { type: "tool_use", id: "u1", name: "bash", input: { command: "cat /etc/passwd" } },
+          { type: "tool_use", id: "u2", name: "delegate_to_helper", input: { prompt: "go" } },
+        ],
+        stopReason: "tool_use",
+        text: "",
+        usage: { input: 1, output: 1 },
+      },
+      {
+        content: [{ type: "text", text: "done" }],
+        stopReason: "end_turn",
+        text: "done",
+        usage: { input: 1, output: 1 },
+      },
+    ]),
+    log: () => {},
+    audit: openAuditLog(project),
+    runId: "run-99",
+  };
+  await driveConversation(
+    context,
+    buildRuntime(context, agent),
+    new VirtualSandbox({ cwd: "/workspace", env: {} }),
+    [{ role: "user", content: "go" }],
+    0,
+  );
+
+  const entries = readAuditEntries(dir, 10);
+  assert.deepEqual(
+    entries.map((e) => [e.tool, e.ok]),
+    [
+      ["bash", false],
+      ["delegate_to_helper", false],
+    ],
+  );
+  for (const entry of entries) assert.match(entry.output, /not available to this agent/);
+});

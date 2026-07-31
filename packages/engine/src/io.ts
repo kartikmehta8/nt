@@ -76,11 +76,19 @@ function matchesType(value: unknown, type: FieldType): boolean {
 }
 
 /**
+ * Enforces the contract the emitted JSON schema declares — unknown keys
+ * rejected, array items strings — so nothing an untrusted model supplies
+ * outside the declared shape reaches shell commands, URLs, or request bodies.
+ *
  * @param fields The declared input fields.
  * @param input The supplied arguments.
- * @returns An error message when a required field is missing or a value has the wrong type, else null.
+ * @returns An error message when the input does not match the declared fields, else null.
  */
 export function validateInput(fields: FieldSpec[], input: Record<string, unknown>): string | null {
+  const declared = new Set(fields.map((f) => f.name));
+  for (const key of Object.keys(input)) {
+    if (!declared.has(key)) return `unknown field '${key}' is not declared`;
+  }
   for (const f of fields) {
     const value = input[f.name];
     if (value === undefined || value === null) {
@@ -88,6 +96,8 @@ export function validateInput(fields: FieldSpec[], input: Record<string, unknown
       continue;
     }
     if (!matchesType(value, f.type)) return `field '${f.name}' must be of type ${f.type}`;
+    if (f.type === "array" && !(value as unknown[]).every((el) => typeof el === "string"))
+      return `field '${f.name}' must be an array of strings`;
   }
   return null;
 }

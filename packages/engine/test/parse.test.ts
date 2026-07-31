@@ -89,3 +89,10 @@ test("parseFields treats required false and 'false' as optional", () => {
     [false, false, true, true],
   );
 });
+
+test("inline flow-list nesting is capped like container nesting", () => {
+  const depth = 150;
+  const hostile = "[".repeat(depth) + "]".repeat(depth);
+  assert.throws(() => parseScalar(hostile, LOC), /flow list nesting too deep/);
+  assert.deepEqual(parseScalar("[[a, b], [c]]", LOC), [["a", "b"], ["c"]]);
+});

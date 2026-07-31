@@ -13,6 +13,7 @@ import {
   interpolateShell,
   interpolateUrl,
   shellQuote,
+  validateInput,
 } from "#io";
 import { parseStructuredOutput } from "#runtime";
 
@@ -66,4 +67,18 @@ test("conformsToOutputSchema checks array element types", () => {
   assert.equal(conformsToOutputSchema({ tags: [] }, schema), true);
   assert.equal(conformsToOutputSchema({ tags: [1, 2, 3] }, schema), false);
   assert.equal(conformsToOutputSchema({ tags: ["a", 2] }, schema), false);
+});
+
+test("validateInput rejects undeclared fields so nothing outside the schema passes through", () => {
+  const fields = [{ name: "q", type: "string" as const, required: true }];
+  assert.equal(validateInput(fields, { q: "ok" }), null);
+  assert.match(validateInput(fields, { q: "ok", role: "admin" }) ?? "", /unknown field 'role'/);
+  assert.match(validateInput([], { anything: 1 }) ?? "", /unknown field 'anything'/);
+});
+
+test("validateInput enforces string items in declared arrays", () => {
+  const fields = [{ name: "tags", type: "array" as const, required: true }];
+  assert.equal(validateInput(fields, { tags: ["a", "b"] }), null);
+  assert.match(validateInput(fields, { tags: ["a", 2] }) ?? "", /array of strings/);
+  assert.match(validateInput(fields, { tags: [{}] }) ?? "", /array of strings/);
 });

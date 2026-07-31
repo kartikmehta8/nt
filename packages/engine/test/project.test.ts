@@ -7,6 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runCustomTool } from "#custom-tools";
+import { Engine } from "#engine";
 import { parseNt } from "#parse/parser";
 import { VirtualSandbox } from "#sandbox";
 import { buildProject } from "#schema/build";
@@ -158,4 +159,67 @@ test("tool input is validated against the declared schema", async () => {
     /must be of type number/,
   );
   assert.equal((await runCustomTool(tool, sandbox, { name: "x", count: 3 })).isError, false);
+});
+
+test("http tools refuse IPv4-mapped IPv6 literals in either encoding", async () => {
+  const sandbox = new VirtualSandbox({ cwd: "/workspace", env: {} });
+  const base = {
+    name: "t",
+    description: "t",
+    input: [],
+    headers: {},
+    loc: { file: "<test>", line: 1 },
+  };
+  for (const host of ["[::ffff:169.254.169.254]", "[::ffff:7f00:1]", "[::ffff:a9fe:a9fe]"]) {
+    const tool = { ...base, type: "http" as const, url: `http://${host}/x` };
+    const outcome = await runCustomTool(tool, sandbox, {});
+    assert.equal(outcome.isError, true, `${host} should be blocked`);
+    assert.match(outcome.content, /private\/loopback/);
+  }
+});
+
+test("custom tools refuse undeclared input fields before command or URL use", async () => {
+  const sandbox = new VirtualSandbox({ cwd: "/workspace", env: {} });
+  const tool = {
+    name: "t",
+    description: "t",
+    type: "shell" as const,
+    command: "echo {name}",
+    input: [{ name: "name", type: "string" as const, required: true }],
+    headers: {},
+    loc: { file: "<test>", line: 1 },
+  };
+  const outcome = await runCustomTool(tool, sandbox, { name: "x", extra: "smuggled" });
+  assert.equal(outcome.isError, true);
+  assert.match(outcome.content, /unknown field 'extra'/);
+});
+
+test("built-in and delegation tool names are reserved", () => {
+  assert.throws(() => build("tool bash:\n  command: echo hi\n"), /reserved/);
+  assert.throws(() => build("tool fs_read:\n  command: cat {f}\n"), /reserved/);
+  assert.throws(() => build("tool delegate_to_helper:\n  command: echo hi\n"), /reserved/);
+});
+
+test("a 127-prefixed DNS hostname does not qualify for the cleartext loopback exception", () => {
+  assert.throws(
+    () =>
+      build(
+        "provider p:\n  api: anthropic\n  base_url: http://127.attacker.example/v1\n  api_key: env(K)\n",
+      ),
+    /must use https/,
+  );
+  build("provider p:\n  api: anthropic\n  base_url: http://127.0.0.1:8080\n  api_key: env(K)\n");
+});
+
+test("provider.headers with a non-map value is an error, not silently dropped", () => {
+  assert.throws(
+    () => build("provider p:\n  api: anthropic\n  headers: nope\n  api_key: env(K)\n"),
+    /provider.headers must be a map/,
+  );
+});
+
+test("undeclared workflow input cannot preseed declared outputs", async () => {
+  const engine = new Engine(build("workflow w:\n  output:\n    verdict: string\n"));
+  const result = await engine.runWorkflow("w", { verdict: "spoofed" });
+  assert.deepEqual(result.output, {});
 });

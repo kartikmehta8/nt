@@ -6,12 +6,15 @@
  * `shell` tools run their command in the agent's sandbox with values
  * shell-quoted; `http` tools call the interpolated URL with env-resolved
  * headers under a timeout, refuse redirects, non-http(s) schemes, and
- * private/loopback addresses (unless `allow_internal`), cap the response
+ * private/loopback destinations — checking literal addresses and resolving
+ * hostnames through DNS (unless `allow_internal`) — cap the response
  * body, and withhold declared headers when the model controls the URL's
  * origin — the model influences these values, so nothing it supplies may
  * change command or URL structure or steer secrets to an attacker host.
  */
 
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { HTTP_TOOL_MAX_BODY_BYTES, HTTP_TOOL_TIMEOUT_MS } from "#constants";
 import { interpolate, interpolateShell, interpolateUrl, validateInput } from "#io";
 import type { Sandbox } from "#sandbox";
@@ -65,26 +68,63 @@ function templateOrigin(urlTemplate: string): string | null {
 }
 
 /**
- * @param hostname A URL hostname, possibly bracketed for IPv6.
- * @returns Whether the host is loopback, link-local, or private (an SSRF risk).
+ * @param ip An IPv6 address literal, lowercased.
+ * @returns The embedded IPv4 address when the literal is IPv4-mapped — in the
+ * dotted form DNS returns or the hex form the URL parser serializes — else null.
  */
-function isPrivateHost(hostname: string): boolean {
-  const h = hostname.replace(/^\[|\]$/g, "").toLowerCase();
-  if (h === "localhost" || h.endsWith(".localhost")) return true;
-  if (h === "::1" || h === "::") return true;
-  if (/^f[cd]/.test(h) || /^fe[89ab]/.test(h)) return true;
-  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.\d{1,3}$/);
-  if (!m) return false;
-  const a = Number(m[1]);
-  const b = Number(m[2]);
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
-  );
+function mappedIpv4(ip: string): string | null {
+  const dotted = ip.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (dotted) return dotted[1];
+  const hex = ip.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (!hex) return null;
+  const hi = parseInt(hex[1], 16);
+  const lo = parseInt(hex[2], 16);
+  return `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+}
+
+/**
+ * @param ip A validated IPv4 or IPv6 address literal, lowercased and unbracketed.
+ * @returns Whether the address is loopback, link-local, or private (an SSRF risk).
+ */
+function isPrivateAddress(ip: string): boolean {
+  const candidate = mappedIpv4(ip) ?? ip;
+  if (isIP(candidate) === 4) {
+    const [a, b] = candidate.split(".").map(Number);
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+  if (candidate === "::1" || candidate === "::") return true;
+  return /^f[cd]/.test(candidate) || /^fe[89ab]/.test(candidate);
+}
+
+/**
+ * Hostnames are DNS-resolved before connecting because a model-chosen name may
+ * point at metadata or private space; `fetch` re-resolves, so a rebinding race
+ * remains theoretically possible, but a privately-resolving name never passes.
+ *
+ * @param hostname A URL hostname, possibly bracketed for IPv6.
+ * @returns A refusal message when the host is private or unresolvable, else null.
+ */
+async function vetEgressHost(hostname: string): Promise<string | null> {
+  const refusal = (detail: string) =>
+    `refusing to call private/loopback address ${detail} (set allow_internal: true to permit)`;
+  const bare = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (bare === "localhost" || bare.endsWith(".localhost")) return refusal(`'${hostname}'`);
+  if (isIP(bare)) return isPrivateAddress(bare) ? refusal(`'${hostname}'`) : null;
+  let addresses: { address: string }[];
+  try {
+    addresses = await lookup(bare, { all: true });
+  } catch {
+    return `cannot resolve host '${hostname}'`;
+  }
+  const bad = addresses.find((a) => isPrivateAddress(a.address.toLowerCase()));
+  return bad ? refusal(`'${bad.address}' (resolved from '${hostname}')`) : null;
 }
 
 /**
@@ -125,11 +165,10 @@ async function runHttpTool(def: ToolDef, input: Record<string, unknown>): Promis
       content: `URL scheme '${parsed.protocol}' is not allowed (use http or https)`,
       isError: true,
     };
-  if (!def.allowInternal && isPrivateHost(parsed.hostname))
-    return {
-      content: `refusing to call private/loopback address '${parsed.hostname}' (set allow_internal: true to permit)`,
-      isError: true,
-    };
+  if (!def.allowInternal) {
+    const refusal = await vetEgressHost(parsed.hostname);
+    if (refusal) return { content: refusal, isError: true };
+  }
 
   const method = (def.method ?? "GET").toUpperCase();
   const headers: Record<string, string> = {};
