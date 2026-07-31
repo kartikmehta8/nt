@@ -37,8 +37,16 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
+      - name: Check for an Open VSX token
+        id: ovsx
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -n "$OVSX_PAT" ]; then echo "present=true" >> "$GITHUB_OUTPUT"
+          else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
       - name: Ensure Open VSX namespace exists
-        if: ${{ secrets.OVSX_PAT != '' }}
+        if: steps.ovsx.outputs.present == 'true'
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
@@ -47,7 +55,7 @@ jobs:
             echo "Namespace '$PUBLISHER' already exists, continuing."
 
       - name: Publish to Open VSX
-        if: ${{ secrets.OVSX_PAT != '' }}
+        if: steps.ovsx.outputs.present == 'true'
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: pnpm exec ovsx publish *.vsix --pat "$OVSX_PAT"
