@@ -10,7 +10,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const vscode = require("vscode");
-const { scanDefinitions, BUILTIN_TOOLS } = require("./ntIndex");
+const { scanDefinitions, readBoundedFile, BUILTIN_TOOLS, MAX_SCANNED_FILES } = require("./ntIndex");
 
 const WORD_RE = /[A-Za-z0-9_./-]+/;
 const LIST_KEYS = {
@@ -219,16 +219,12 @@ function referenceProvider() {
       if (!range) return undefined;
       const word = document.getText(range);
       if (isPath(word)) return undefined;
-      const uris = await vscode.workspace.findFiles(NT_GLOB, NT_EXCLUDE);
+      const uris = await vscode.workspace.findFiles(NT_GLOB, NT_EXCLUDE, MAX_SCANNED_FILES);
       const locations = [];
       const wordRe = new RegExp(`(?<![A-Za-z0-9_-])${escapeRe(word)}(?![A-Za-z0-9_-])`, "g");
       for (const uri of uris) {
-        let text;
-        try {
-          text = fs.readFileSync(uri.fsPath, "utf8");
-        } catch {
-          continue;
-        }
+        const text = readBoundedFile(uri.fsPath);
+        if (text === null) continue;
         const lines = text.split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
           wordRe.lastIndex = 0;

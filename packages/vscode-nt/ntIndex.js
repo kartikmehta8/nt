@@ -13,6 +13,22 @@ const fs = require("node:fs");
 const DECL_RE = /^(agent|subagent|sandbox|tool|skill|workflow|provider)\b[ \t]+([A-Za-z0-9_-]+)/;
 const DESC_RE = /^\s*description:[ \t]+(.*\S)/;
 
+const MAX_SCANNED_FILES = 500;
+const MAX_SCANNED_FILE_BYTES = 1_000_000;
+
+/**
+ * @param fsPath An on-disk path to a workspace .nt file.
+ * @returns The file's text, or null when it is unreadable or exceeds the size cap.
+ */
+function readBoundedFile(fsPath) {
+  try {
+    if (fs.statSync(fsPath).size > MAX_SCANNED_FILE_BYTES) return null;
+    return fs.readFileSync(fsPath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
 const BUILTIN_TOOLS = {
   fs_read: "Built-in tool — read a file from the sandbox.",
   fs_write: "Built-in tool — write a file in the sandbox.",
@@ -114,20 +130,27 @@ class NtIndex {
   }
 
   /**
+   * Reads are bounded in count and size so a hostile workspace cannot exhaust
+   * the extension host.
+   *
    * @param findFiles An async function returning the workspace's .nt file URIs.
    */
   async refresh(findFiles) {
     this.byName = new Map();
-    for (const uri of await findFiles()) {
-      let text;
-      try {
-        text = fs.readFileSync(uri.fsPath, "utf8");
-      } catch {
-        continue;
-      }
+    const uris = await findFiles();
+    for (const uri of uris.slice(0, MAX_SCANNED_FILES)) {
+      const text = readBoundedFile(uri.fsPath);
+      if (text === null) continue;
       for (const def of scanDefinitions(text, uri)) this.add(def);
     }
   }
 }
 
-module.exports = { NtIndex, scanDefinitions, findDescription, BUILTIN_TOOLS };
+module.exports = {
+  NtIndex,
+  scanDefinitions,
+  findDescription,
+  readBoundedFile,
+  BUILTIN_TOOLS,
+  MAX_SCANNED_FILES,
+};
