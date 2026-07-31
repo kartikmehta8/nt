@@ -112,8 +112,8 @@ name a folder.
 
 ## What gets removed
 
-Tool inputs are model-chosen and tool output can echo anything, so NT strips
-credentials before a line is written:
+Tool names and inputs are model-chosen and tool output can echo anything, so
+NT strips credentials from all three before a line is written:
 
 - Values under a secret-looking name (`api_key`, `token`, `password`,
   `authorization`, `cookie`, and friends) are replaced with `[redacted]`.

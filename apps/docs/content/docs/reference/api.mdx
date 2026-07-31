@@ -219,7 +219,8 @@ sandbox workspace
 ## tool
 
 A custom power an agent can call. `{placeholders}` are filled from the tool's
-`input`.
+`input`. The built-in tool names (`fs_read`, `fs_write`, `fs_list`, `bash`) and
+the `delegate_to_` prefix are reserved and cannot be used as tool names.
 
 | Field            | Type    | Values / default                                                                |
 | ---------------- | ------- | ------------------------------------------------------------------------------- |

@@ -45,11 +45,15 @@ agent/delegation recursion.
   must interpolate via `interpolateShell` (single-quoting) and `http` tools via
   `interpolateUrl` (percent-encoding). Plain `interpolate` is for prompts only
   — using it in `def.command` or `def.url` is command/URL injection.
-- **`http` tool egress rules loosening.** `runHttpTool` must keep all four:
-  `isPrivateHost` deny (unless `def.allowInternal`), http(s)-only scheme check,
-  `redirect: "manual"`, and the `originPinned` check that withholds declared
-  headers when the model controls the URL's origin. Dropping `originPinned`
-  sends provider secrets to an attacker host.
+- **`http` tool egress rules loosening.** `runHttpTool` must keep all of:
+  `vetEgressHost` deny — literal IPs, localhost names, and DNS-resolved
+  addresses checked against `isPrivateAddress` (unless `def.allowInternal`) —
+  http(s)-only scheme check, `redirect: "manual"`, and the `originPinned`
+  check that withholds declared headers when the model controls the URL's
+  origin. Dropping `originPinned` sends provider secrets to an attacker host.
+- **Tool dispatch bypassing the per-agent allowlist.** The session loop only
+  dispatches `tool_use` names in `AgentRuntime.allowedTools`; a dispatch path
+  that looks tools up globally by name reintroduces confused-deputy delegation.
 - **Secrets in source, or non-https provider endpoints.** `declarations.ts`
   requires `api_key` be `env(NAME)` (and warns on an `env()` fallback literal),
   and `checkBaseUrl` requires https except for loopback. Weakening either, or
