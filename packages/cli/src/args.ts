@@ -24,6 +24,7 @@ export interface Args {
   json: boolean;
   verbose: boolean;
   showToolCalls: boolean;
+  yes: boolean;
   allowOutsideImports: boolean;
   template?: string;
   force: boolean;
@@ -57,6 +58,8 @@ OPTIONS
       --force         With 'setup': overwrite files that already exist
       --show-tool-calls   With 'up'/'run'/'chat': name each tool call and
                       delegation in the thinking line as it happens
+  -y, --yes           Pre-approve tools declared with 'confirm: true' instead
+                      of asking in the terminal before each call
       --allow-outside-imports  Permit imports outside the project directory
   -v, --verbose       Print the agent/tool trace to stderr
   -h, --help          Show this help
@@ -101,6 +104,7 @@ export function parseArgs(argv: string[]): Args {
     json: false,
     verbose: false,
     showToolCalls: false,
+    yes: false,
     allowOutsideImports: false,
     force: false,
   };
@@ -120,6 +124,7 @@ export function parseArgs(argv: string[]): Args {
     else if (arg === "--force") args.force = true;
     else if (arg === "--json") args.json = true;
     else if (arg === "--show-tool-calls") args.showToolCalls = true;
+    else if (arg === "--yes" || arg === "-y") args.yes = true;
     else if (arg === "--allow-outside-imports") args.allowOutsideImports = true;
     else if (arg === "--verbose" || arg === "-v") args.verbose = true;
     else if (arg === "--help" || arg === "-h") args.positional.push("help");

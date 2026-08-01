@@ -92,6 +92,12 @@ instant tool call stays on screen for a moment so it is readable, and while a
 subagent works the line keeps naming it. To turn it on for every run, set
 `show_tool_calls: true` in your `config` block instead of passing the flag.
 
+A tool declared with `confirm: true` stops the run and asks with an
+interactive selector — arrow keys move between **Yes** and **No**, Enter
+confirms, `y`/`n` answer directly, Esc denies. A denied call is refused and
+the agent carries on without it; `--yes` pre-approves the whole run, and a
+terminal that cannot ask always refuses, never silently runs.
+
 ## Options
 
 | Option               | What it does                                                          |
@@ -106,6 +112,7 @@ subagent works the line keeps naming it. To turn it on for every run, set
 | `-t, --template`     | With `setup`, the starter to write: `minimal` (default) or `full`.    |
 | `--force`            | With `setup`, replace files that already exist.                       |
 | `--show-tool-calls`  | With `up`/`run`/`chat`, name each tool call and delegation live.      |
+| `-y, --yes`          | Pre-approve tools declared with `confirm: true` instead of asking.    |
 | `-v, --verbose`      | Print the agent / tool / delegation trace.                            |
 | `-h, --help`         | Show help.                                                            |
 

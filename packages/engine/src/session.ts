@@ -129,9 +129,7 @@ async function runToolCalls(
         : { kind: "tool", agent: runtime.name, detail: name, depth },
     );
     const startedAt = Date.now();
-    const outcome = runtime.allowedTools.has(name)
-      ? await dispatchTool(context, sandbox, name, input, depth)
-      : { content: `tool '${name}' is not available to this agent`, isError: true };
+    const outcome = await gatedDispatch(context, runtime, sandbox, name, input, depth);
     context.audit?.record({
       run: context.runId,
       agent: runtime.name,
@@ -151,6 +149,37 @@ async function runToolCalls(
     });
   }
   return results;
+}
+
+/**
+ * Applies the availability check and the human-in-the-loop gate before a tool
+ * runs. A tool declared with `confirm: true` executes only after the confirm
+ * callback approves it; without a callback (a non-interactive run or an
+ * embedder that wired none), the call is denied rather than silently run.
+ *
+ * @returns The tool outcome — the execution result, or the refusal.
+ */
+async function gatedDispatch(
+  context: RunContext,
+  runtime: AgentRuntime,
+  sandbox: Sandbox,
+  name: string,
+  input: Record<string, unknown>,
+  depth: number,
+): Promise<ToolOutcome> {
+  if (!runtime.allowedTools.has(name))
+    return { content: `tool '${name}' is not available to this agent`, isError: true };
+  if (context.project.tools.get(name)?.confirm) {
+    if (!context.confirm)
+      return {
+        content: `tool '${name}' requires confirmation, and this run has no way to ask — re-run interactively or pass --yes`,
+        isError: true,
+      };
+    const approved = await context.confirm({ agent: runtime.name, tool: name, input, depth });
+    if (!approved)
+      return { content: `the user denied permission to run tool '${name}'`, isError: true };
+  }
+  return dispatchTool(context, sandbox, name, input, depth);
 }
 
 const BUILTIN_HANDLERS: Record<

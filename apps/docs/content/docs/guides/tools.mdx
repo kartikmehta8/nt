@@ -91,11 +91,38 @@ When the agent runs this tool with the word "iPhone", NT replaces `{term}` with
 | `type`        | `shell` to run a command, or `http` to call a website.  |
 | `command`     | The command to run (for `shell` tools).                 |
 | `url`         | The web address to call (for `http` tools).             |
+| `confirm`     | `true` to ask you in the terminal before every call.    |
 
 <Callout title="The description matters">
   The agent decides when to use a tool by reading its `description`. A clear description like
   "Returns the current year" helps it pick the right tool at the right time.
 </Callout>
+
+## Ask before running
+
+Some tools deserve a human in the loop — a shell command, or an `http` call
+that changes something. Add `confirm: true` and the run stops and asks before
+every call:
+
+```yaml
+tool deploy
+  description: Deploy the current build to production.
+  type: shell
+  command: ./deploy.sh
+  confirm: true
+```
+
+```text
+⚠ age wants to run deploy({})
+❯ Yes, run this tool
+  No, deny it (esc)
+```
+
+Move with the arrow keys and press Enter, or answer directly with `y` or `n`;
+Esc denies. A denied tool is refused — the agent is told the call was denied
+and carries on without it. Pass `--yes` (or `-y`) to pre-approve every gated
+tool for that run. When there is no one to ask — say, output piped to a file —
+gated tools are always refused, never silently run.
 
 ## Next
 

@@ -65,6 +65,7 @@ agent age
 config
   target: node
   entry: age
+  show_tool_calls: true
   defaults:
     model: anthropic/claude-sonnet-5
     sandbox: workspace
@@ -87,7 +88,9 @@ config
 tool current_year
   description: Return the current four-digit calendar year.
   type: shell
-  command: date +%Y`,
+  command: date +%Y
+  # An interactive Yes/No selector asks before every call; --yes pre-approves.
+  confirm: true`,
   },
   {
     id: "skills",

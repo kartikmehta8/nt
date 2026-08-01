@@ -27,6 +27,7 @@ export type {
   AuditConfig,
   ConfigDef,
   ConfigDefaults,
+  ConfirmRequest,
   EnvRef,
   FieldSpec,
   FieldType,

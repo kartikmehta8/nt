@@ -75,8 +75,28 @@ test("on a non-TTY stream the spinner writes nothing", async () => {
   const handle = startThinking(stream);
   await new Promise((resolve) => setTimeout(resolve, 200));
   handle.update("Running tool fs_read");
+  handle.pause();
+  handle.resume();
   handle.stop();
   assert.deepEqual(stream.chunks, []);
+});
+
+test("pause clears the line for a prompt and resume continues the animation", async () => {
+  const stream = fakeStream(true);
+  const handle = startThinking(stream);
+  handle.pause();
+  assert.equal(
+    stream.chunks[stream.chunks.length - 1],
+    "\r\x1b[2K\x1b[?25h",
+    "pause clears the line and restores the cursor",
+  );
+  const whilePaused = stream.chunks.length;
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  assert.equal(stream.chunks.length, whilePaused, "no frames render while paused");
+  handle.resume();
+  assert.ok(stream.chunks.length > whilePaused, "resume renders again");
+  assert.match(stream.chunks[stream.chunks.length - 1], /[A-Z][a-z]+… \(\d+s\)/);
+  handle.stop();
 });
 
 test("update replaces the rotating word with a status, and null returns to it", () => {

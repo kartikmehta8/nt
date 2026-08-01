@@ -13,6 +13,7 @@ import { NtError } from "#errors";
 import {
   isEnvRef,
   isMap,
+  optBool,
   optNum,
   optStr,
   parseFields,
@@ -90,6 +91,7 @@ export function parseTool(
     "headers",
     "command",
     "allow_internal",
+    "confirm",
   ];
   warnUnknown(body, fields, `tool ${name}`, warnings);
   const type = optStr(body.type, "tool.type", loc) ?? "shell";
@@ -110,6 +112,7 @@ export function parseTool(
     headers,
     command: optStr(body.command, "tool.command", loc) ?? undefined,
     allowInternal: body.allow_internal === true,
+    confirm: optBool(body.confirm, "tool.confirm", loc) ?? false,
     loc,
   };
 }

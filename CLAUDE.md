@@ -118,6 +118,10 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
   literal — is flagged by `nt validate`; keys must never land in a file.
 - **`http` tools cannot reach private/localhost addresses** unless the tool sets
   `allow_internal: true`.
+- **Tools with `confirm: true` never run unapproved.** The session loop calls the
+  engine's `confirm` callback before dispatch (the CLI's interactive Yes/No
+  selector; `--yes` pre-approves); with no callback or a non-interactive
+  terminal the call is refused, never silently run.
 - **Every tool call is appended to `~/.nt/audit`** as JSONL with credentials
   redacted, unless `config.audit` names another folder or is set to `off`. The
   folder is created owner-only (0700) and files 0600; lines are only appended.

@@ -64,6 +64,23 @@ const engine = Engine.load("age.nt", {
 await engine.runAgent("age", { clues: "graduated college in 2010" });
 ```
 
+### Gate risky tools (human in the loop)
+
+A tool declared with `confirm: true` in `.nt` only runs after your `confirm`
+callback approves it — this is what powers the `nt` CLI's interactive Yes/No
+selector and its `--yes` flag. **Wire no callback and gated tools are always
+refused**, never silently run:
+
+```ts
+import { Engine, type ConfirmRequest } from "@age.nt/engine";
+
+const engine = Engine.load("age.nt", {
+  confirm: async (request: ConfirmRequest) => {
+    return myReviewQueue.approve(request.agent, request.tool, request.input);
+  },
+});
+```
+
 ### Scaffold a starter project
 
 ```ts

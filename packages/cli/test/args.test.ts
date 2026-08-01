@@ -45,6 +45,12 @@ test("--show-tool-calls parses and defaults to false", () => {
   assert.equal(parseArgs(["run", "age"]).showToolCalls, false);
 });
 
+test("--yes and -y parse and default to false", () => {
+  assert.equal(parseArgs(["run", "age", "--yes"]).yes, true);
+  assert.equal(parseArgs(["run", "age", "-y"]).yes, true);
+  assert.equal(parseArgs(["run", "age"]).yes, false);
+});
+
 test("a bare -- separator (as pnpm forwards it) is skipped, not an unknown flag", () => {
   const args = parseArgs(["chat", "age", "--", "--show-tool-calls"]);
   assert.deepEqual(args.positional, ["chat", "age"]);

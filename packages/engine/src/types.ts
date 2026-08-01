@@ -71,6 +71,7 @@ export interface ToolDef {
   headers?: Record<string, NtValue>;
   command?: string;
   allowInternal?: boolean;
+  confirm?: boolean;
   loc: Location;
 }
 
@@ -173,6 +174,13 @@ export interface StepEvent {
   kind: StepEventKind;
   agent: string;
   detail: string;
+  depth: number;
+}
+
+export interface ConfirmRequest {
+  agent: string;
+  tool: string;
+  input: Record<string, unknown>;
   depth: number;
 }
 

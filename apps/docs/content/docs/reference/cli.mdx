@@ -45,6 +45,7 @@ nt <command> [options]
 | `-t, --template`     | With `setup`, which starter to write: `minimal` or `full`.                   |
 | `--force`            | With `setup`, replace files that already exist.                              |
 | `--show-tool-calls`  | With `up`, `run`, and `chat`, name each tool call and delegation live.       |
+| `-y, --yes`          | Pre-approve tools declared with `confirm: true` instead of asking.           |
 | `-v, --verbose`      | Show extra detail about what the agent is doing.                             |
 | `-h, --help`         | Show help.                                                                   |
 
@@ -163,6 +164,23 @@ is readable, and while a subagent works the line keeps naming it.
 Prefer it always on? Set `show_tool_calls: true` in your
 [`config` block](/docs/entry-and-config#show_tool_calls) and every `up`,
 `run`, and `chat` behaves as if the flag were passed.
+
+## Approving tool calls
+
+A tool declared with `confirm: true` stops the run and asks before every call
+with an interactive selector:
+
+```text
+⚠ age wants to run current_year({})
+❯ Yes, run this tool
+  No, deny it (esc)
+```
+
+Arrow keys move, Enter confirms, `y`/`n` answer directly, and Esc denies. A
+denied call is refused; the agent is told and carries on. Pass `--yes` (or
+`-y`) to pre-approve every gated tool for the run. When the terminal cannot
+ask — output piped or redirected — gated tools are always refused, never
+silently run. See [Ask before running](/docs/guides/tools#ask-before-running).
 
 ## Chatting with an agent
 

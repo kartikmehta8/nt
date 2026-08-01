@@ -64,11 +64,14 @@ export interface SpinnerOptions {
  * asks to return to the rotating words. A concrete status replaces the line
  * immediately, but a return to the words is deferred until the status has been
  * visible for the hold time — so even a one-millisecond tool call stays
- * readable.
+ * readable. `pause` clears the line and restores the cursor so a prompt can
+ * use the terminal; `resume` continues the animation.
  */
 export interface ThinkingHandle {
   stop(): void;
   update(status: string | null): void;
+  pause(): void;
+  resume(): void;
 }
 
 /**
@@ -95,7 +98,7 @@ export function startThinking(
   stream: SpinnerStream = process.stdout,
   opts?: SpinnerOptions,
 ): ThinkingHandle {
-  if (!stream.isTTY) return { stop: () => {}, update: () => {} };
+  if (!stream.isTTY) return { stop: () => {}, update: () => {}, pause: () => {}, resume: () => {} };
   const holdMs = opts?.statusHoldMs ?? STATUS_HOLD_MS;
   const startedAt = Date.now();
   let frame = 0;
@@ -103,6 +106,7 @@ export function startThinking(
   let status: string | null = null;
   let holdUntil = 0;
   let revertPending = false;
+  let paused = false;
   let stopped = false;
 
   const render = (): void => {
@@ -120,7 +124,7 @@ export function startThinking(
 
   stream.write(HIDE_CURSOR);
   render();
-  const timer = setInterval(render, FRAME_INTERVAL_MS);
+  let timer = setInterval(render, FRAME_INTERVAL_MS);
 
   const update = (next: string | null): void => {
     if (stopped) return;
@@ -131,7 +135,20 @@ export function startThinking(
     } else {
       revertPending = true;
     }
+    if (!paused) render();
+  };
+  const pause = (): void => {
+    if (stopped || paused) return;
+    paused = true;
+    clearInterval(timer);
+    stream.write(CLEAR_LINE + SHOW_CURSOR);
+  };
+  const resume = (): void => {
+    if (stopped || !paused) return;
+    paused = false;
+    stream.write(HIDE_CURSOR);
     render();
+    timer = setInterval(render, FRAME_INTERVAL_MS);
   };
   const stop = (): void => {
     if (stopped) return;
@@ -155,7 +172,7 @@ export function startThinking(
   process.once("SIGINT", onSigint);
   process.once("SIGTERM", onSigterm);
 
-  return { stop, update };
+  return { stop, update, pause, resume };
 }
 
 let active: ThinkingHandle | null = null;
@@ -188,11 +205,28 @@ export function beginThinking(
   active = handle;
   return {
     update: (next) => handle.update(next),
+    pause: () => handle.pause(),
+    resume: () => handle.resume(),
     stop(): void {
       if (active === handle) active = null;
       handle.stop();
     },
   };
+}
+
+/**
+ * Pauses the currently running indicator, if any, so a terminal prompt can
+ * take over the line and the cursor.
+ */
+export function pauseThinking(): void {
+  active?.pause();
+}
+
+/**
+ * Resumes the currently running indicator, if any, after a prompt finishes.
+ */
+export function resumeThinking(): void {
+  active?.resume();
 }
 
 /**

@@ -4,3 +4,6 @@ tool current_year
   description: Return the current four-digit calendar year.
   type: shell
   command: date +%Y
+  # Human-in-the-loop gate: an interactive Yes/No selector asks before every
+  # call. Pass --yes to pre-approve, or remove this line to run unattended.
+  confirm: true

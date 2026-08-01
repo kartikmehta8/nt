@@ -234,12 +234,14 @@ the `delegate_to_` prefix are reserved and cannot be used as tool names.
 | `headers`        | map     | Request headers for `http` tools.                                               |
 | `input`          | map     | Typed inputs that fill `{placeholders}`.                                        |
 | `allow_internal` | boolean | Allow `http` tools to call private or localhost addresses. Defaults to `false`. |
+| `confirm`        | boolean | Ask in the terminal (a Yes/No selector) before every call. Defaults to `false`. |
 
 ```yaml
 tool current_year
   description: Returns the current four-digit year.
   type: shell
   command: date +%Y
+  confirm: true
 
 tool lookup
   description: Fetch a record by id.
@@ -249,6 +251,11 @@ tool lookup
   input:
     id: string
 ```
+
+A tool with `confirm: true` never runs unapproved: the CLI stops and asks, the
+`--yes` flag pre-approves, and a run with no way to ask (piped output, or an
+embedder that wired no `confirm` callback) refuses the call. Recommended for
+shell tools and `http` tools that `POST`.
 
 ---
 

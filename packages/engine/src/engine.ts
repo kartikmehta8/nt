@@ -22,6 +22,7 @@ import { runSession } from "#session";
 import type { BuildResult } from "#schema/build";
 import type {
   AgentDef,
+  ConfirmRequest,
   FieldSpec,
   Location,
   Project,
@@ -35,6 +36,7 @@ export type RunnableKind = "agent" | "subagent" | "workflow";
 export interface EngineOptions {
   verbose?: boolean;
   onStep?: (event: StepEvent) => void;
+  confirm?: (request: ConfirmRequest) => Promise<boolean>;
 }
 
 export class Engine {
@@ -44,6 +46,7 @@ export class Engine {
   private log: (line: string) => void;
   private audit: AuditLog | null;
   private onStep?: (event: StepEvent) => void;
+  private confirm?: (request: ConfirmRequest) => Promise<boolean>;
 
   constructor(loaded: BuildResult, opts?: EngineOptions) {
     this.project = loaded.project;
@@ -52,6 +55,7 @@ export class Engine {
     this.log = opts?.verbose ? (line) => process.stderr.write(line + "\n") : () => {};
     this.audit = openAuditLog(this.project);
     this.onStep = opts?.onStep;
+    this.confirm = opts?.confirm;
   }
 
   /**
@@ -172,6 +176,7 @@ export class Engine {
       audit: this.audit,
       runId: randomUUID(),
       onStep: this.onStep,
+      confirm: this.confirm,
     };
   }
 

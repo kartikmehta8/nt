@@ -10,13 +10,15 @@
 import * as readline from "node:readline";
 import { Engine, NtError } from "@age.nt/engine";
 import { bold, cyan, dim, green, out, printWarnings, red, yellow } from "#format";
+import { makeConfirm } from "#permission";
 import { beginThinking, reportStep, setStepReporting } from "#spinner";
 import { parseInput, resolveEntry, type Args } from "#args";
 
 /**
  * Loads the engine for `up`, `run`, and `chat`, wiring step events into the
- * thinking line. Reporting turns on when `--show-tool-calls` is passed or the
- * project sets `config.show_tool_calls: true`.
+ * thinking line and the interactive permission selector for `confirm: true`
+ * tools. Reporting turns on when `--show-tool-calls` is passed or the project
+ * sets `config.show_tool_calls: true`.
  *
  * @param args The parsed arguments.
  * @returns The loaded engine.
@@ -26,6 +28,10 @@ function loadEngine(args: Args): Engine {
     verbose: args.verbose,
     allowOutsideImports: args.allowOutsideImports,
     onStep: reportStep,
+    confirm: makeConfirm({
+      yes: args.yes,
+      interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
+    }),
   });
   setStepReporting(args.showToolCalls || engine.project.config.showToolCalls);
   return engine;

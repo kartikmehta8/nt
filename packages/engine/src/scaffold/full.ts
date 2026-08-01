@@ -112,6 +112,8 @@ tool current_year
   description: Return the current four-digit calendar year.
   type: shell
   command: date +%Y
+  # Add 'confirm: true' and an interactive Yes/No selector asks before every
+  # call; pass --yes to pre-approve. Recommended for shell tools and http POSTs.
 `;
 
 const RESEARCHER_NT = `# A specialist the age agent delegates date lookups to.
