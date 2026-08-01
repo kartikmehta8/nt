@@ -36,6 +36,7 @@ pnpm nt:validate     # parse + type-check every .nt file (root scripts target ex
 pnpm nt:list         # list all declared entities
 pnpm nt:graph        # show how agents wire to subagents / tools / sandboxes
 pnpm nt:up           # bring the ecosystem up and run config.entry
+pnpm nt:run <name>   # run one agent/subagent/workflow once (append -m "…" for input)
 pnpm nt:chat         # chat with the example agent
 
 pnpm docs:dev        # run the docs site (http://localhost:3000); docs:build / docs:start

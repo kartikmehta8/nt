@@ -9,6 +9,7 @@
 import * as readline from "node:readline";
 import { Engine, loadProject, NtError, type AgentDef, type Project } from "@age.nt/engine";
 import { bold, cyan, dim, green, out, printWarnings, red, yellow } from "#format";
+import { startThinking } from "#spinner";
 import { parseInput, resolveEntry, type Args } from "#args";
 
 /**
@@ -191,10 +192,16 @@ async function runNamed(
 ): Promise<void> {
   const kind = engine.isRunnable(name);
   if (!kind) throw new NtError(`'${name}' is not a runnable agent, subagent, or workflow`, null);
-  const result =
-    kind === "workflow"
-      ? await engine.runWorkflow(name, input)
-      : await engine.runAgent(name, input);
+  const thinking = startThinking();
+  let result;
+  try {
+    result =
+      kind === "workflow"
+        ? await engine.runWorkflow(name, input)
+        : await engine.runAgent(name, input);
+  } finally {
+    thinking.stop();
+  }
   if (result.output) {
     out(bold("Output:"));
     out(JSON.stringify(result.output, null, 2));
@@ -232,10 +239,13 @@ export async function cmdChat(args: Args): Promise<void> {
     const text = line.trim();
     if (text === "exit" || text === "quit") break;
     if (text !== "") {
+      const thinking = startThinking();
       try {
         const result = await chat.send(text);
+        thinking.stop();
         out(result.output ? JSON.stringify(result.output, null, 2) : result.text);
       } catch (e) {
+        thinking.stop();
         console.error(red("✗ " + (e as Error).message));
       }
     }

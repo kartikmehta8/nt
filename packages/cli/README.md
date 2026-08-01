@@ -83,6 +83,10 @@ nt chat age
 `setup`, `validate`, `list`, `graph`, and `audit` work offline; `up`, `run`, and
 `chat` call the model and need a provider key.
 
+While `up`, `run`, and `chat` wait on the model, an animated thinking line
+(`✻ Pondering… (3s)`) shows in the terminal. It clears the moment the reply
+arrives, and it is skipped entirely when output is piped or redirected.
+
 ## Options
 
 | Option               | What it does                                                          |

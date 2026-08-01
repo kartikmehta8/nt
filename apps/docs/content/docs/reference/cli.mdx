@@ -137,6 +137,15 @@ Add `-v` to watch what the agent does step by step:
 nt run age -m "graduated in 2010" -v
 ```
 
+While the model works, `run`, `up`, and `chat` show an animated thinking line:
+
+```text
+✻ Pondering… (3s)
+```
+
+It clears the moment the answer arrives, and it is skipped entirely when output
+is piped or redirected, so scripts and logs stay clean.
+
 ## Chatting with an agent
 
 `chat` opens a conversation that remembers what you said earlier. Type `exit` or
