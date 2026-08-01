@@ -40,6 +40,17 @@ test("allowOutsideImports defaults to false", () => {
   assert.equal(parseArgs(["validate"]).allowOutsideImports, false);
 });
 
+test("--show-tool-calls parses and defaults to false", () => {
+  assert.equal(parseArgs(["run", "age", "--show-tool-calls"]).showToolCalls, true);
+  assert.equal(parseArgs(["run", "age"]).showToolCalls, false);
+});
+
+test("a bare -- separator (as pnpm forwards it) is skipped, not an unknown flag", () => {
+  const args = parseArgs(["chat", "age", "--", "--show-tool-calls"]);
+  assert.deepEqual(args.positional, ["chat", "age"]);
+  assert.equal(args.showToolCalls, true);
+});
+
 test("the path defaults to age.nt and is not marked explicit", () => {
   const args = parseArgs(["validate"]);
   assert.equal(args.dir, DEFAULT_ENTRY);

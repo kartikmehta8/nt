@@ -10,8 +10,9 @@
 import { NtError } from "@age.nt/engine";
 import { cmdAudit } from "#audit";
 import { HELP, parseArgs } from "#args";
-import { cmdChat, cmdGraph, cmdList, cmdRun, cmdUp, cmdValidate } from "#commands";
+import { cmdChat, cmdRun, cmdUp } from "#commands";
 import { out, red } from "#format";
+import { cmdGraph, cmdList, cmdValidate } from "#inspect";
 import { cmdSetup } from "#setup";
 
 /**

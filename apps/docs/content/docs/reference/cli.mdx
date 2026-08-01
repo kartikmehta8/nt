@@ -44,6 +44,7 @@ nt <command> [options]
 | `--json`             | With `audit`, print the raw JSONL lines and nothing else.                    |
 | `-t, --template`     | With `setup`, which starter to write: `minimal` or `full`.                   |
 | `--force`            | With `setup`, replace files that already exist.                              |
+| `--show-tool-calls`  | With `up`, `run`, and `chat`, name each tool call and delegation live.       |
 | `-v, --verbose`      | Show extra detail about what the agent is doing.                             |
 | `-h, --help`         | Show help.                                                                   |
 
@@ -137,7 +138,7 @@ Add `-v` to watch what the agent does step by step:
 nt run age -m "graduated in 2010" -v
 ```
 
-While the model works, `run`, `up`, and `chat` show an animated thinking line:
+While the model works, `up`, `run`, and `chat` show an animated thinking line:
 
 ```text
 ✻ Pondering… (3s)
@@ -145,6 +146,19 @@ While the model works, `run`, `up`, and `chat` show an animated thinking line:
 
 It clears the moment the answer arrives, and it is skipped entirely when output
 is piped or redirected, so scripts and logs stay clean.
+
+Add `--show-tool-calls` and the line names each step as it happens — every tool
+call, subagent delegation, and workflow step:
+
+```text
+✻ Running tool current_year… (2s)
+✻ Delegating to researcher… (4s)
+✻ researcher · Running tool fs_list… (5s)
+```
+
+Between steps, while the model itself is thinking, the line returns to the
+rotating words. Even an instant tool call stays on screen for a moment so it
+is readable, and while a subagent works the line keeps naming it.
 
 ## Chatting with an agent
 

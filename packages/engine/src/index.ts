@@ -9,7 +9,7 @@
  */
 
 export { Engine } from "#engine";
-export type { RunnableKind } from "#engine";
+export type { EngineOptions, RunnableKind } from "#engine";
 export type { AuditStatus, EcosystemStatus, ProviderStatus, SandboxStatus } from "#status";
 export { auditFiles, readAuditEntries } from "#audit/log";
 export type { AuditEntry, AuditToolKind } from "#audit/log";
@@ -38,6 +38,8 @@ export type {
   SandboxDef,
   ScaffoldFile,
   SkillDef,
+  StepEvent,
+  StepEventKind,
   ThinkingLevel,
   ToolDef,
   TokenUsage,

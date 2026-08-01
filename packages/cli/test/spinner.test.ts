@@ -1,12 +1,13 @@
 /**
  * @file Thinking-indicator tests: the spinner animates on a TTY with a word
  * and elapsed counter, cleans the line up on stop, stays idempotent across
- * repeated stops, and stays completely silent on non-TTY streams.
+ * repeated stops, stays completely silent on non-TTY streams, and renders
+ * engine step events as concrete statuses via `beginThinking`/`reportStep`.
  */
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { startThinking, type SpinnerStream } from "#spinner";
+import { beginThinking, reportStep, startThinking, type SpinnerStream } from "#spinner";
 
 /**
  * @param isTTY Whether the fake stream should report itself as a terminal.
@@ -67,6 +68,55 @@ test("on a non-TTY stream the spinner writes nothing", async () => {
   const stream = fakeStream(false);
   const handle = startThinking(stream);
   await new Promise((resolve) => setTimeout(resolve, 200));
+  handle.update("Running tool fs_read");
   handle.stop();
   assert.deepEqual(stream.chunks, []);
+});
+
+test("update replaces the rotating word with a status, and null returns to it", () => {
+  const stream = fakeStream(true);
+  const handle = startThinking(stream, { statusHoldMs: 0 });
+  handle.update("Running tool fs_read");
+  const withStatus = stream.chunks[stream.chunks.length - 1];
+  assert.match(withStatus, /Running tool fs_read… \(\d+s\)/);
+  handle.update(null);
+  const reverted = stream.chunks[stream.chunks.length - 1];
+  assert.doesNotMatch(reverted, /Running tool/);
+  assert.match(reverted, /[A-Z][a-z]+… \(\d+s\)/);
+  handle.stop();
+});
+
+test("a status stays visible for the hold time even after a revert is requested", async () => {
+  const stream = fakeStream(true);
+  const handle = startThinking(stream, { statusHoldMs: 60_000 });
+  handle.update("Running tool current_year");
+  handle.update(null);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  assert.match(
+    stream.chunks[stream.chunks.length - 1],
+    /Running tool current_year…/,
+    "an instant tool call is still on screen after the revert request",
+  );
+  handle.stop();
+});
+
+test("reportStep routes engine events to the active indicator", () => {
+  const stream = fakeStream(true);
+  const handle = beginThinking(stream, { statusHoldMs: 0 });
+  reportStep({ kind: "tool", agent: "age", detail: "current_year", depth: 0 });
+  assert.match(stream.chunks[stream.chunks.length - 1], /Running tool current_year…/);
+  reportStep({ kind: "delegation", agent: "age", detail: "researcher", depth: 0 });
+  assert.match(stream.chunks[stream.chunks.length - 1], /Delegating to researcher…/);
+  reportStep({ kind: "model", agent: "researcher", detail: "anthropic/claude-sonnet-5", depth: 1 });
+  assert.match(stream.chunks[stream.chunks.length - 1], /researcher · Thinking…/);
+  reportStep({ kind: "tool", agent: "researcher", detail: "fs_list", depth: 1 });
+  assert.match(stream.chunks[stream.chunks.length - 1], /researcher · Running tool fs_list…/);
+  reportStep({ kind: "workflow-step", agent: "age", detail: "step 1/2", depth: 0 });
+  assert.match(stream.chunks[stream.chunks.length - 1], /Running step 1\/2 \(age\)…/);
+  reportStep({ kind: "model", agent: "age", detail: "anthropic/claude-sonnet-5", depth: 0 });
+  assert.doesNotMatch(stream.chunks[stream.chunks.length - 1], /Running|Delegating|Thinking/);
+  handle.stop();
+  const written = stream.chunks.length;
+  reportStep({ kind: "tool", agent: "age", detail: "current_year", depth: 0 });
+  assert.equal(stream.chunks.length, written, "a stopped indicator receives no more events");
 });

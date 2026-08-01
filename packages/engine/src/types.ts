@@ -166,6 +166,15 @@ export interface RunResult {
   usage: TokenUsage;
 }
 
+export type StepEventKind = "model" | "tool" | "delegation" | "workflow-step";
+
+export interface StepEvent {
+  kind: StepEventKind;
+  agent: string;
+  detail: string;
+  depth: number;
+}
+
 export interface TokenUsage {
   input: number;
   output: number;

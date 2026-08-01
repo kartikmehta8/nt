@@ -1,127 +1,36 @@
 /**
- * @file Implementations of the individual `nt` commands.
+ * @file The commands that call the model: `up`, `run`, and the `chat` REPL.
  *
- * `validate`, `list`, `graph`, `up`, `run`, and the interactive `chat` REPL.
- * Each loads a project or engine from the given path, then inspects it or runs
- * an agent/subagent/workflow, printing through the format helpers.
+ * Each loads an engine from the given path, then brings the ecosystem up or
+ * runs an agent/subagent/workflow, showing the animated thinking line while a
+ * model call is in flight. The offline inspection commands live in
+ * `inspect.ts`.
  */
 
 import * as readline from "node:readline";
-import { Engine, loadProject, NtError, type AgentDef, type Project } from "@age.nt/engine";
+import { Engine, NtError, type EngineOptions } from "@age.nt/engine";
 import { bold, cyan, dim, green, out, printWarnings, red, yellow } from "#format";
-import { startThinking } from "#spinner";
+import { beginThinking, reportStep } from "#spinner";
 import { parseInput, resolveEntry, type Args } from "#args";
 
 /**
- * @param title The section heading.
- * @param items The lines to print under the heading, if any.
- */
-function section(title: string, items: string[]): void {
-  if (items.length === 0) return;
-  out(bold(title));
-  for (const item of items) out("  " + item);
-  out("");
-}
-
-/**
  * @param args The parsed arguments.
+ * @returns The engine options shared by `up`, `run`, and `chat`, wiring step
+ *   events into the thinking line when `--show-tool-calls` is set.
  */
-export function cmdValidate(args: Args): void {
-  const { project, warnings } = loadProject(resolveEntry(args), {
+function engineOptions(args: Args): EngineOptions & { allowOutsideImports?: boolean } {
+  return {
+    verbose: args.verbose,
     allowOutsideImports: args.allowOutsideImports,
-  });
-  printWarnings(warnings);
-  out(green(`✓ ${project.files.length} file(s) OK`));
-  out(dim("  " + summary(project)));
-}
-
-/**
- * @param project The loaded project.
- * @returns A one-line count of every entity kind.
- */
-function summary(project: Project): string {
-  return (
-    `${project.agents.size} agents · ${project.subagents.size} subagents · ${project.tools.size} tools · ` +
-    `${project.skills.size} skills · ${project.sandboxes.size} sandboxes · ` +
-    `${project.workflows.size} workflows · ${project.providers.size} providers`
-  );
-}
-
-/**
- * @param args The parsed arguments.
- */
-export function cmdList(args: Args): void {
-  const { project, warnings } = loadProject(resolveEntry(args), {
-    allowOutsideImports: args.allowOutsideImports,
-  });
-  printWarnings(warnings);
-  const described = (x: { name: string; description?: string; model?: string | null }) =>
-    `${cyan(x.name)} ${dim("— " + (x.description || x.model || ""))}`;
-  section("Agents", [...project.agents.values()].map(described));
-  section("Subagents", [...project.subagents.values()].map(described));
-  section("Workflows", [...project.workflows.values()].map(described));
-  section(
-    "Tools",
-    [...project.tools.values()].map((x) => `${x.name} ${dim("(" + x.type + ")")}`),
-  );
-  section(
-    "Skills",
-    [...project.skills.values()].map((x) => x.name),
-  );
-  section(
-    "Sandboxes",
-    [...project.sandboxes.values()].map((x) => `${x.name} ${dim(`(${x.type} @ ${x.cwd})`)}`),
-  );
-  section(
-    "Providers",
-    [...project.providers.values()].map((x) => `${x.name} ${dim("(" + x.api + ")")}`),
-  );
-}
-
-/**
- * @param args The parsed arguments.
- */
-export function cmdGraph(args: Args): void {
-  const { project, warnings } = loadProject(resolveEntry(args), {
-    allowOutsideImports: args.allowOutsideImports,
-  });
-  printWarnings(warnings);
-  for (const agent of project.agents.values()) renderAgent(agent, project);
-  for (const agent of project.subagents.values()) renderAgent(agent, project);
-  for (const workflow of project.workflows.values()) {
-    out(bold("▶ workflow " + workflow.name));
-    workflow.steps.forEach((step, i) => {
-      const who = step.agent ?? workflow.agent ?? "(default)";
-      out(
-        `  ${i + 1}. ${cyan(who)}${step.skill ? " +skill:" + step.skill : ""}${step.into ? dim(" → " + step.into) : ""}`,
-      );
-    });
-    out("");
-  }
-}
-
-/**
- * @param agent The agent or subagent to render.
- * @param project The project it belongs to.
- */
-function renderAgent(agent: AgentDef, project: Project): void {
-  out(bold(agent.kind === "agent" ? "◆ " + agent.name : "◇ " + agent.name));
-  out("  " + dim("model:   ") + (agent.model ?? project.config.defaults.model ?? "(default)"));
-  out("  " + dim("sandbox: ") + (agent.sandbox ?? project.config.defaults.sandbox ?? "virtual"));
-  if (agent.tools.length) out("  " + dim("tools:   ") + agent.tools.join(", "));
-  if (agent.skills.length) out("  " + dim("skills:  ") + agent.skills.join(", "));
-  for (const sub of agent.subagents) out("  ↳ " + cyan(sub));
-  out("");
+    onStep: args.showToolCalls ? reportStep : undefined,
+  };
 }
 
 /**
  * @param args The parsed arguments.
  */
 export async function cmdUp(args: Args): Promise<void> {
-  const engine = Engine.load(resolveEntry(args), {
-    verbose: args.verbose,
-    allowOutsideImports: args.allowOutsideImports,
-  });
+  const engine = Engine.load(resolveEntry(args), engineOptions(args));
   printWarnings(engine.warnings);
   const project = engine.project;
   out(bold("Bringing up the NT ecosystem…"));
@@ -172,10 +81,7 @@ export async function cmdUp(args: Args): Promise<void> {
 export async function cmdRun(args: Args): Promise<void> {
   const name = args.positional[1];
   if (!name) throw new NtError("usage: nt run <name> [--input JSON | --message TEXT]", null);
-  const engine = Engine.load(resolveEntry(args), {
-    verbose: args.verbose,
-    allowOutsideImports: args.allowOutsideImports,
-  });
+  const engine = Engine.load(resolveEntry(args), engineOptions(args));
   printWarnings(engine.warnings);
   await runNamed(engine, name, parseInput(args));
 }
@@ -192,7 +98,7 @@ async function runNamed(
 ): Promise<void> {
   const kind = engine.isRunnable(name);
   if (!kind) throw new NtError(`'${name}' is not a runnable agent, subagent, or workflow`, null);
-  const thinking = startThinking();
+  const thinking = beginThinking();
   let result;
   try {
     result =
@@ -221,10 +127,7 @@ async function runNamed(
 export async function cmdChat(args: Args): Promise<void> {
   const name = args.positional[1];
   if (!name) throw new NtError("usage: nt chat <name> [--file FILE]", null);
-  const engine = Engine.load(resolveEntry(args), {
-    verbose: args.verbose,
-    allowOutsideImports: args.allowOutsideImports,
-  });
+  const engine = Engine.load(resolveEntry(args), engineOptions(args));
   printWarnings(engine.warnings);
   const chat = engine.createChat(name);
   out(dim(`Chatting with '${chat.agentName}'. Type 'exit' or press Ctrl-D to quit.`));
@@ -239,7 +142,7 @@ export async function cmdChat(args: Args): Promise<void> {
     const text = line.trim();
     if (text === "exit" || text === "quit") break;
     if (text !== "") {
-      const thinking = startThinking();
+      const thinking = beginThinking();
       try {
         const result = await chat.send(text);
         thinking.stop();

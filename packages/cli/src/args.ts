@@ -2,9 +2,9 @@
  * @file Command-line argument parsing and help text.
  *
  * Parses flags into `Args` (the `--file`/`--dir` path, `--input`/`--message`,
- * `--run`, `--tail`, `--json`, `--template`, `--force`, `--verbose`), derives the
- * run input from `--input` JSON or the `--message` shorthand, and holds the
- * `--help` text.
+ * `--run`, `--tail`, `--json`, `--template`, `--force`, `--verbose`,
+ * `--show-tool-calls`), derives the run input from `--input` JSON or the
+ * `--message` shorthand, and holds the `--help` text.
  */
 
 import * as fs from "node:fs";
@@ -23,6 +23,7 @@ export interface Args {
   tail?: number;
   json: boolean;
   verbose: boolean;
+  showToolCalls: boolean;
   allowOutsideImports: boolean;
   template?: string;
   force: boolean;
@@ -54,6 +55,8 @@ OPTIONS
       --json          With 'audit': print the raw JSONL entries only
   -t, --template NAME With 'setup': ${TEMPLATE_NAMES.join(" or ")} (default ${DEFAULT_TEMPLATE})
       --force         With 'setup': overwrite files that already exist
+      --show-tool-calls   With 'up'/'run'/'chat': name each tool call and
+                      delegation in the thinking line as it happens
       --allow-outside-imports  Permit imports outside the project directory
   -v, --verbose       Print the agent/tool trace to stderr
   -h, --help          Show this help
@@ -97,6 +100,7 @@ export function parseArgs(argv: string[]): Args {
     explicitPath: false,
     json: false,
     verbose: false,
+    showToolCalls: false,
     allowOutsideImports: false,
     force: false,
   };
@@ -115,9 +119,11 @@ export function parseArgs(argv: string[]): Args {
     else if (arg === "--template" || arg === "-t") args.template = requireValue(argv, arg, i++);
     else if (arg === "--force") args.force = true;
     else if (arg === "--json") args.json = true;
+    else if (arg === "--show-tool-calls") args.showToolCalls = true;
     else if (arg === "--allow-outside-imports") args.allowOutsideImports = true;
     else if (arg === "--verbose" || arg === "-v") args.verbose = true;
     else if (arg === "--help" || arg === "-h") args.positional.push("help");
+    else if (arg === "--") continue;
     else if (arg.startsWith("-")) throw new NtError(`unknown flag '${arg}'`, null);
     else args.positional.push(arg);
   }

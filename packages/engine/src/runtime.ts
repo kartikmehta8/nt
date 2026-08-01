@@ -14,7 +14,7 @@ import { NtError } from "#errors";
 import { buildOutputSchema, conformsToOutputSchema, extractJson, interpolate } from "#io";
 import type { LlmToolDef, ProviderRegistry } from "#provider";
 import { buildToolDefs } from "#tools";
-import type { AgentDef, Project, ThinkingLevel, TokenUsage } from "#types";
+import type { AgentDef, Project, StepEvent, ThinkingLevel, TokenUsage } from "#types";
 
 export interface RunContext {
   project: Project;
@@ -22,6 +22,7 @@ export interface RunContext {
   log: (line: string) => void;
   audit: AuditLog | null;
   runId: string;
+  onStep?: (event: StepEvent) => void;
 }
 
 export interface AgentRuntime {

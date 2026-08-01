@@ -47,6 +47,23 @@ const result = await engine.runWorkflow("estimate_age", {
 });
 ```
 
+### Watch progress
+
+Pass `onStep` to observe every model call, tool dispatch, subagent delegation,
+and workflow step as it happens — this is what powers the `nt` CLI's
+`--show-tool-calls` thinking line:
+
+```ts
+import { Engine, type StepEvent } from "@age.nt/engine";
+
+const engine = Engine.load("age.nt", {
+  onStep: (event: StepEvent) => {
+    console.error(`[${event.kind}] ${event.agent} → ${event.detail} (depth ${event.depth})`);
+  },
+});
+await engine.runAgent("age", { clues: "graduated college in 2010" });
+```
+
 ### Scaffold a starter project
 
 ```ts

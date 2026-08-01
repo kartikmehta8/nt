@@ -52,6 +52,7 @@ export async function driveConversation(
 
   for (let iter = 0; iter < MAX_AGENT_STEPS; iter++) {
     steps++;
+    context.onStep?.({ kind: "model", agent: runtime.name, detail: runtime.model, depth });
     const response = await context.registry.complete({
       model: runtime.model,
       system: runtime.system,
@@ -117,6 +118,16 @@ async function runToolCalls(
     const name = block.name!;
     const input = block.input ?? {};
     context.log(`  ${"  ".repeat(depth)}· ${runtime.name} → ${name}(${JSON.stringify(input)})`);
+    context.onStep?.(
+      name.startsWith(DELEGATE_PREFIX)
+        ? {
+            kind: "delegation",
+            agent: runtime.name,
+            detail: name.slice(DELEGATE_PREFIX.length),
+            depth,
+          }
+        : { kind: "tool", agent: runtime.name, detail: name, depth },
+    );
     const startedAt = Date.now();
     const outcome = runtime.allowedTools.has(name)
       ? await dispatchTool(context, sandbox, name, input, depth)

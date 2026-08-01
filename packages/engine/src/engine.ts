@@ -20,9 +20,22 @@ import { auditStatus, bringUpStatus, type AuditStatus, type EcosystemStatus } fr
 import { buildUserMessage, resolveModel, type RunContext } from "#runtime";
 import { runSession } from "#session";
 import type { BuildResult } from "#schema/build";
-import type { AgentDef, FieldSpec, Location, Project, RunResult, SandboxDef } from "#types";
+import type {
+  AgentDef,
+  FieldSpec,
+  Location,
+  Project,
+  RunResult,
+  SandboxDef,
+  StepEvent,
+} from "#types";
 
 export type RunnableKind = "agent" | "subagent" | "workflow";
+
+export interface EngineOptions {
+  verbose?: boolean;
+  onStep?: (event: StepEvent) => void;
+}
 
 export class Engine {
   readonly project: Project;
@@ -30,21 +43,24 @@ export class Engine {
   private registry = new ProviderRegistry();
   private log: (line: string) => void;
   private audit: AuditLog | null;
+  private onStep?: (event: StepEvent) => void;
 
-  constructor(loaded: BuildResult, opts?: { verbose?: boolean }) {
+  constructor(loaded: BuildResult, opts?: EngineOptions) {
     this.project = loaded.project;
     this.warnings = loaded.warnings;
     for (const provider of this.project.providers.values()) this.registry.register(provider);
     this.log = opts?.verbose ? (line) => process.stderr.write(line + "\n") : () => {};
     this.audit = openAuditLog(this.project);
+    this.onStep = opts?.onStep;
   }
 
   /**
    * @param dir An entry `.nt` file (imports are followed) or a directory of `.nt` files.
-   * @param opts Options such as verbose tracing and whether imports may escape the project directory.
+   * @param opts Options such as verbose tracing, a per-step progress callback,
+   *   and whether imports may escape the project directory.
    * @returns A ready-to-run engine.
    */
-  static load(dir: string, opts?: { verbose?: boolean; allowOutsideImports?: boolean }): Engine {
+  static load(dir: string, opts?: EngineOptions & { allowOutsideImports?: boolean }): Engine {
     return new Engine(loadProject(dir, { allowOutsideImports: opts?.allowOutsideImports }), opts);
   }
 
@@ -102,8 +118,14 @@ export class Engine {
     let steps = 0;
     let lastText = "";
 
-    for (const step of workflow.steps) {
+    for (const [index, step] of workflow.steps.entries()) {
       const agent = this.resolveWorkflowAgent(name, step.agent ?? workflow.agent);
+      this.onStep?.({
+        kind: "workflow-step",
+        agent: agent.name,
+        detail: `step ${index + 1}/${workflow.steps.length}`,
+        depth: 0,
+      });
       const base = step.prompt ? interpolate(step.prompt, vars) : buildUserMessage(agent, vars);
       const prompt = step.skill ? this.applySkill(step.skill, base) : base;
       const result = await runSession(
@@ -149,6 +171,7 @@ export class Engine {
       log: this.log,
       audit: this.audit,
       runId: randomUUID(),
+      onStep: this.onStep,
     };
   }
 

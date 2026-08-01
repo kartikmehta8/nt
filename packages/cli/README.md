@@ -85,7 +85,11 @@ nt chat age
 
 While `up`, `run`, and `chat` wait on the model, an animated thinking line
 (`✻ Pondering… (3s)`) shows in the terminal. It clears the moment the reply
-arrives, and it is skipped entirely when output is piped or redirected.
+arrives, and it is skipped entirely when output is piped or redirected. Add
+`--show-tool-calls` and the line names each step as it happens — for example
+`✻ Running tool fs_read… (4s)` or `✻ Delegating to researcher… (6s)`. Even an
+instant tool call stays on screen for a moment so it is readable, and while a
+subagent works the line keeps naming it.
 
 ## Options
 
@@ -100,6 +104,7 @@ arrives, and it is skipped entirely when output is piped or redirected.
 | `--json`             | With `audit`, print the raw JSONL entries only.                       |
 | `-t, --template`     | With `setup`, the starter to write: `minimal` (default) or `full`.    |
 | `--force`            | With `setup`, replace files that already exist.                       |
+| `--show-tool-calls`  | With `up`/`run`/`chat`, name each tool call and delegation live.      |
 | `-v, --verbose`      | Print the agent / tool / delegation trace.                            |
 | `-h, --help`         | Show help.                                                            |
 
