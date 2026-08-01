@@ -1,6 +1,6 @@
 {
   "name": "@age.nt/engine",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "The NT language and runtime engine: parser, schema, providers, sandboxes, and the agentic session loop.",
   "type": "module",
   "license": "MIT",
