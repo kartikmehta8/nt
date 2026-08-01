@@ -64,13 +64,14 @@ Several places accept a `thinking` level. From least to most effort:
 
 Project-wide settings. One `config` block per project.
 
-| Field       | Type   | Values / default                                                          |
-| ----------- | ------ | ------------------------------------------------------------------------- |
-| `target`    | string | Defaults to `node`.                                                       |
-| `entry`     | string | The agent or workflow `nt up` runs. No default.                           |
-| `audit`     | string | `off`, or the folder tool calls are logged to. Defaults to `~/.nt/audit`. |
-| `defaults`  | map    | Shared defaults for every agent (see below).                              |
-| `providers` | map    | Named provider blocks (see [provider](#provider)).                        |
+| Field             | Type    | Values / default                                                          |
+| ----------------- | ------- | ------------------------------------------------------------------------- |
+| `target`          | string  | Defaults to `node`.                                                       |
+| `entry`           | string  | The agent or workflow `nt up` runs. No default.                           |
+| `audit`           | string  | `off`, or the folder tool calls are logged to. Defaults to `~/.nt/audit`. |
+| `show_tool_calls` | boolean | Name each tool call in the CLI's thinking line. Defaults to `false`.      |
+| `defaults`        | map     | Shared defaults for every agent (see below).                              |
+| `providers`       | map     | Named provider blocks (see [provider](#provider)).                        |
 
 ### config.defaults
 
@@ -86,6 +87,7 @@ config
   target: node
   entry: age
   audit: ~/.nt/audit
+  show_tool_calls: true
   defaults:
     model: anthropic/claude-sonnet-5
     sandbox: workspace

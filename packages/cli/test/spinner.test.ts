@@ -7,7 +7,13 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { beginThinking, reportStep, startThinking, type SpinnerStream } from "#spinner";
+import {
+  beginThinking,
+  reportStep,
+  setStepReporting,
+  startThinking,
+  type SpinnerStream,
+} from "#spinner";
 
 /**
  * @param isTTY Whether the fake stream should report itself as a terminal.
@@ -103,6 +109,11 @@ test("a status stays visible for the hold time even after a revert is requested"
 test("reportStep routes engine events to the active indicator", () => {
   const stream = fakeStream(true);
   const handle = beginThinking(stream, { statusHoldMs: 0 });
+  setStepReporting(false);
+  const before = stream.chunks.length;
+  reportStep({ kind: "tool", agent: "age", detail: "current_year", depth: 0 });
+  assert.equal(stream.chunks.length, before, "events are ignored while reporting is off");
+  setStepReporting(true);
   reportStep({ kind: "tool", agent: "age", detail: "current_year", depth: 0 });
   assert.match(stream.chunks[stream.chunks.length - 1], /Running tool current_year…/);
   reportStep({ kind: "delegation", agent: "age", detail: "researcher", depth: 0 });

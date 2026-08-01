@@ -74,6 +74,20 @@ export function optNum(v: NtValue | undefined, ctx: string, loc: Location): numb
  * @param v The value to coerce, if present.
  * @param ctx Field description for error messages.
  * @param loc Source location for error messages.
+ * @returns The boolean value, or null when absent.
+ */
+export function optBool(v: NtValue | undefined, ctx: string, loc: Location): boolean | null {
+  if (v === undefined || v === null) return null;
+  if (typeof v === "boolean") return v;
+  if (v === "true") return true;
+  if (v === "false") return false;
+  throw new NtError(`${ctx} must be true or false`, loc);
+}
+
+/**
+ * @param v The value to coerce, if present.
+ * @param ctx Field description for error messages.
+ * @param loc Source location for error messages.
  * @returns The list coerced to strings, or an empty array when absent.
  */
 export function strList(v: NtValue | undefined, ctx: string, loc: Location): string[] {

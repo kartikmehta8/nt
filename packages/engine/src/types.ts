@@ -144,6 +144,7 @@ export interface ConfigDef {
   entry: string | null;
   defaults: ConfigDefaults;
   audit: AuditConfig;
+  showToolCalls: boolean;
   loc: Location | null;
 }
 

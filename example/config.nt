@@ -3,6 +3,9 @@
 config
   target: node
   entry: age
+  # Name each tool call and delegation in the terminal's thinking line while
+  # the agent works, as if `--show-tool-calls` were always passed.
+  show_tool_calls: true
   # Every tool call is appended to a JSONL file in this folder, secrets
   # redacted. Set `audit: off` to turn the log off entirely.
   audit: ~/.nt/audit

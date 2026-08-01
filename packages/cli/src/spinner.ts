@@ -159,6 +159,18 @@ export function startThinking(
 }
 
 let active: ThinkingHandle | null = null;
+let stepReporting = false;
+
+/**
+ * Turns step reporting on or off — set from `--show-tool-calls` or the
+ * project's `config.show_tool_calls` once the project is loaded. While off,
+ * `reportStep` ignores every event and the line keeps its rotating words.
+ *
+ * @param enabled Whether engine step events should drive the thinking line.
+ */
+export function setStepReporting(enabled: boolean): void {
+  stepReporting = enabled;
+}
 
 /**
  * Starts a thinking indicator and records it as the target for `reportStep`,
@@ -193,7 +205,7 @@ export function beginThinking(
  * @param event The step event reported by the engine.
  */
 export function reportStep(event: StepEvent): void {
-  if (!active) return;
+  if (!stepReporting || !active) return;
   const prefix = event.depth > 0 ? `${event.agent} · ` : "";
   if (event.kind === "model") active.update(event.depth > 0 ? `${prefix}Thinking` : null);
   else if (event.kind === "tool") active.update(`${prefix}Running tool ${event.detail}`);

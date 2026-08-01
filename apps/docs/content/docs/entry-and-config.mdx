@@ -140,6 +140,20 @@ config
 Read the log back with `nt audit`. Secrets are removed before anything is
 written — see [Audit the tool calls](/docs/guides/audit).
 
+### show_tool_calls
+
+Set it to `true` and the terminal's thinking line names each tool call and
+delegation as it happens, on every `nt up`, `nt run`, and `nt chat` — the same
+thing the `--show-tool-calls` flag does for a single run.
+
+```yaml
+config
+  show_tool_calls: true
+```
+
+Leave it out and the line shows only the rotating thinking words unless the
+flag is passed.
+
 ### defaults
 
 Values every agent uses unless it sets its own. This saves you repeating the same

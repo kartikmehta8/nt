@@ -9,7 +9,7 @@
 
 import { defaultAuditConfig, parseAuditConfig } from "#audit/config";
 import { NtError } from "#errors";
-import { isMap, optNum, optStr, parseThinking } from "#schema/coerce";
+import { isMap, optBool, optNum, optStr, parseThinking, warnUnknown } from "#schema/coerce";
 import {
   parseAgent,
   parseProvider,
@@ -41,6 +41,7 @@ function emptyProject(files: string[]): Project {
       entry: null,
       defaults: { model: null, sandbox: null, thinking: null, maxTokens: null },
       audit: defaultAuditConfig(),
+      showToolCalls: false,
       loc: null,
     },
     providers: new Map(),
@@ -87,12 +88,21 @@ function applyConfig(
       `duplicate config block at ${loc.file}:${loc.line} overrides the earlier one at ${config.loc.file}:${config.loc.line}`,
     );
   config.loc = loc;
+  warnUnknown(
+    body,
+    ["target", "entry", "audit", "show_tool_calls", "defaults", "providers"],
+    "config",
+    warnings,
+  );
   config.target = optStr(body.target, "config.target", loc) ?? config.target;
   config.entry = optStr(body.entry, "config.entry", loc) ?? config.entry;
+  config.showToolCalls =
+    optBool(body.show_tool_calls, "config.show_tool_calls", loc) ?? config.showToolCalls;
   if (body.audit !== undefined) config.audit = parseAuditConfig(body.audit, loc);
   if (body.defaults !== undefined) {
     const d = body.defaults;
     if (!isMap(d)) throw new NtError("config.defaults must be a map", loc);
+    warnUnknown(d, ["model", "sandbox", "thinking", "max_tokens"], "config.defaults", warnings);
     config.defaults.model = optStr(d.model, "config.defaults.model", loc) ?? config.defaults.model;
     config.defaults.sandbox =
       optStr(d.sandbox, "config.defaults.sandbox", loc) ?? config.defaults.sandbox;

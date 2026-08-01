@@ -89,7 +89,8 @@ arrives, and it is skipped entirely when output is piped or redirected. Add
 `--show-tool-calls` and the line names each step as it happens — for example
 `✻ Running tool fs_read… (4s)` or `✻ Delegating to researcher… (6s)`. Even an
 instant tool call stays on screen for a moment so it is readable, and while a
-subagent works the line keeps naming it.
+subagent works the line keeps naming it. To turn it on for every run, set
+`show_tool_calls: true` in your `config` block instead of passing the flag.
 
 ## Options
 

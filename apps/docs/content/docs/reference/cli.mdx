@@ -160,6 +160,10 @@ Between steps, while the model itself is thinking, the line returns to the
 rotating words. Even an instant tool call stays on screen for a moment so it
 is readable, and while a subagent works the line keeps naming it.
 
+Prefer it always on? Set `show_tool_calls: true` in your
+[`config` block](/docs/entry-and-config#show_tool_calls) and every `up`,
+`run`, and `chat` behaves as if the flag were passed.
+
 ## Chatting with an agent
 
 `chat` opens a conversation that remembers what you said earlier. Type `exit` or

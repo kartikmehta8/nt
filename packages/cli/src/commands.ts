@@ -8,29 +8,34 @@
  */
 
 import * as readline from "node:readline";
-import { Engine, NtError, type EngineOptions } from "@age.nt/engine";
+import { Engine, NtError } from "@age.nt/engine";
 import { bold, cyan, dim, green, out, printWarnings, red, yellow } from "#format";
-import { beginThinking, reportStep } from "#spinner";
+import { beginThinking, reportStep, setStepReporting } from "#spinner";
 import { parseInput, resolveEntry, type Args } from "#args";
 
 /**
+ * Loads the engine for `up`, `run`, and `chat`, wiring step events into the
+ * thinking line. Reporting turns on when `--show-tool-calls` is passed or the
+ * project sets `config.show_tool_calls: true`.
+ *
  * @param args The parsed arguments.
- * @returns The engine options shared by `up`, `run`, and `chat`, wiring step
- *   events into the thinking line when `--show-tool-calls` is set.
+ * @returns The loaded engine.
  */
-function engineOptions(args: Args): EngineOptions & { allowOutsideImports?: boolean } {
-  return {
+function loadEngine(args: Args): Engine {
+  const engine = Engine.load(resolveEntry(args), {
     verbose: args.verbose,
     allowOutsideImports: args.allowOutsideImports,
-    onStep: args.showToolCalls ? reportStep : undefined,
-  };
+    onStep: reportStep,
+  });
+  setStepReporting(args.showToolCalls || engine.project.config.showToolCalls);
+  return engine;
 }
 
 /**
  * @param args The parsed arguments.
  */
 export async function cmdUp(args: Args): Promise<void> {
-  const engine = Engine.load(resolveEntry(args), engineOptions(args));
+  const engine = loadEngine(args);
   printWarnings(engine.warnings);
   const project = engine.project;
   out(bold("Bringing up the NT ecosystem…"));
@@ -81,7 +86,7 @@ export async function cmdUp(args: Args): Promise<void> {
 export async function cmdRun(args: Args): Promise<void> {
   const name = args.positional[1];
   if (!name) throw new NtError("usage: nt run <name> [--input JSON | --message TEXT]", null);
-  const engine = Engine.load(resolveEntry(args), engineOptions(args));
+  const engine = loadEngine(args);
   printWarnings(engine.warnings);
   await runNamed(engine, name, parseInput(args));
 }
@@ -127,7 +132,7 @@ async function runNamed(
 export async function cmdChat(args: Args): Promise<void> {
   const name = args.positional[1];
   if (!name) throw new NtError("usage: nt chat <name> [--file FILE]", null);
-  const engine = Engine.load(resolveEntry(args), engineOptions(args));
+  const engine = loadEngine(args);
   printWarnings(engine.warnings);
   const chat = engine.createChat(name);
   out(dim(`Chatting with '${chat.agentName}'. Type 'exit' or press Ctrl-D to quit.`));

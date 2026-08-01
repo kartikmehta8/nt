@@ -60,6 +60,9 @@ config
   target: node
   # The agent 'nt up' runs when you do not name one.
   entry: age
+  # Name each tool call and delegation in the terminal's thinking line while
+  # the agent works, as if --show-tool-calls were always passed.
+  show_tool_calls: true
   # Each agent uses these unless it declares its own.
   defaults:
     model: anthropic/claude-sonnet-5

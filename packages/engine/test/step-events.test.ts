@@ -118,6 +118,24 @@ test("onStep fires for model calls, tool dispatches, and delegations with depth"
   );
 });
 
+test("config.show_tool_calls parses as a boolean and defaults to false", () => {
+  assert.equal(build("config\n  show_tool_calls: true\n").project.config.showToolCalls, true);
+  assert.equal(build("config\n  show_tool_calls: false\n").project.config.showToolCalls, false);
+  assert.equal(build("config\n  target: node\n").project.config.showToolCalls, false);
+  assert.throws(
+    () => build("config\n  show_tool_calls: sometimes\n"),
+    /show_tool_calls must be true or false/,
+  );
+});
+
+test("unknown config and config.defaults fields warn instead of being silently dropped", () => {
+  const { warnings } = build(
+    "config\n  show_toolcalls: true\n  defaults:\n    modle: anthropic/claude-sonnet-5\n",
+  );
+  assert.ok(warnings.some((w) => w.includes("config: unknown field 'show_toolcalls'")));
+  assert.ok(warnings.some((w) => w.includes("config.defaults: unknown field 'modle'")));
+});
+
 test("a context without onStep drives the loop exactly as before", async () => {
   const { project } = build(
     "config\n  audit: off\n  defaults:\n    model: anthropic/claude-sonnet-5\n" +
