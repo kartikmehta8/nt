@@ -69,8 +69,13 @@ async function openStdio(options: OpenTransportOptions): Promise<OpenTransportRe
     maxBufferSize: 1024 * 1024,
   });
   transport.stderr?.on("data", options.onStderr);
-  await client.connect(transport, connectionOptions(def, options.signal));
-  return { client, transport };
+  try {
+    await client.connect(transport, connectionOptions(def, options.signal));
+    return { client, transport };
+  } catch (error) {
+    await transport.close().catch(() => {});
+    throw error;
+  }
 }
 
 async function openRemote(options: OpenTransportOptions): Promise<OpenTransportResult> {
