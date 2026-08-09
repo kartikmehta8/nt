@@ -66,8 +66,10 @@ test("the log appends one JSON line per tool call in an owner-only folder", () =
   const file = log.fileFor(new Date());
   const lines = fs.readFileSync(file, "utf8").trim().split("\n");
   assert.equal(lines.length, 2);
-  assert.equal((fs.statSync(logDir).mode & 0o777).toString(8), "700");
-  assert.equal((fs.statSync(file).mode & 0o777).toString(8), "600");
+  if (process.platform !== "win32") {
+    assert.equal((fs.statSync(logDir).mode & 0o777).toString(8), "700");
+    assert.equal((fs.statSync(file).mode & 0o777).toString(8), "600");
+  }
 
   const first = JSON.parse(lines[0]);
   assert.equal(first.tool, "fs_write");

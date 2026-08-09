@@ -211,7 +211,7 @@ test("trust fingerprints change for security-relevant fields and stores are owne
   const first = store.trust(def);
   assert.equal(first, serverFingerprint(def));
   assert.equal(store.status(def), "trusted");
-  assert.equal(fs.statSync(store.file).mode & 0o777, 0o600);
+  if (process.platform !== "win32") assert.equal(fs.statSync(store.file).mode & 0o777, 0o600);
   assert.notEqual(first, serverFingerprint({ ...def, args: ["b.mjs"] }));
   assert.equal(store.untrust(def), true);
   fs.writeFileSync(store.file, '{"schema_version":1,"entries":{"malformed":null}}', {

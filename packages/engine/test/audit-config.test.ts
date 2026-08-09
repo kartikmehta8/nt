@@ -13,7 +13,8 @@ import { parseAuditConfig, resolveAuditDir } from "#audit/config";
 import { parseNt } from "#parse/parser";
 import { buildProject } from "#schema/build";
 
-const LOC = { file: "/proj/config.nt", line: 1 };
+const TEST_ROOT = nodePath.parse(nodePath.resolve(process.cwd())).root;
+const LOC = { file: nodePath.join(TEST_ROOT, "proj", "config.nt"), line: 1 };
 
 let dir: string;
 
@@ -62,7 +63,7 @@ test("config.audit accepts an on switch and a home-relative folder", () => {
 
 test("a relative audit folder resolves against the declaring file, not the cwd", () => {
   const { project } = build("config\n  audit: ./logs\n");
-  assert.equal(project.config.audit.dir, "/proj/logs");
+  assert.equal(project.config.audit.dir, nodePath.join(TEST_ROOT, "proj", "logs"));
 });
 
 test("an absolute audit folder is used as given", () => {
@@ -78,9 +79,11 @@ test("config.audit rejects maps, lists, env() references, and empty values", () 
 });
 
 test("resolveAuditDir expands a bare tilde and keeps absolute paths", () => {
-  assert.equal(resolveAuditDir("~", "/base"), os.homedir());
-  assert.equal(resolveAuditDir("/var/log/nt", "/base"), "/var/log/nt");
-  assert.equal(resolveAuditDir("rel", "/base"), "/base/rel");
+  const base = nodePath.join(TEST_ROOT, "base");
+  const absolute = nodePath.join(TEST_ROOT, "var", "log", "nt");
+  assert.equal(resolveAuditDir("~", base), os.homedir());
+  assert.equal(resolveAuditDir(absolute, base), absolute);
+  assert.equal(resolveAuditDir("rel", base), nodePath.join(base, "rel"));
 });
 
 test("parseAuditConfig treats a null value as the default destination", () => {

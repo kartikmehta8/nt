@@ -35,8 +35,10 @@ test("file credentials are atomic, owner-only, and deleted by exact resource", (
   store.set(second, { verifier: "two" });
   assert.equal(store.get(first)?.verifier, "one");
   assert.equal(store.find("https://one.example/mcp", "https://issuer.example")?.key, first);
-  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
-  assert.equal(fs.statSync(nodePath.dirname(file)).mode & 0o777, 0o700);
+  if (process.platform !== "win32") {
+    assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+    assert.equal(fs.statSync(nodePath.dirname(file)).mode & 0o777, 0o700);
+  }
   assert.equal(store.deleteResource("https://one.example/mcp"), true);
   assert.equal(store.get(first), undefined);
   assert.equal(store.get(second)?.verifier, "two");
