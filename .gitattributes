@@ -1,0 +1,6 @@
+# Keep repository text deterministic on Windows, macOS, and Linux so format
+# checks inspect the same LF-normalized content on every CI runner.
+* text=auto eol=lf
+
+# Preserve generated and source image assets byte-for-byte.
+*.png binary
