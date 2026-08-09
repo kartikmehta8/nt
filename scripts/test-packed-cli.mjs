@@ -28,7 +28,6 @@ const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const temp = mkdtempSync(join(tmpdir(), "nt-packed-cli-"));
 const tarballs = join(temp, "tarballs");
 const prefix = join(temp, "install");
-const executable = process.platform === "win32" ? "nt.cmd" : "nt";
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
@@ -50,9 +49,32 @@ function run(command, args, options = {}) {
   });
 }
 
+/**
+ * Invokes pnpm through the platform's executable shim. Windows command shims
+ * require `cmd.exe`; other platforms keep the command shell-free.
+ *
+ * @param args Argument vector passed to pnpm.
+ * @returns Captured standard output.
+ */
+function runPnpm(args) {
+  return run(pnpm, args, { shell: process.platform === "win32" });
+}
+
+/**
+ * Invokes npm through the platform's executable shim. This mirrors how CI and
+ * end users launch the package manager while limiting shell use to Windows,
+ * where `.cmd` files cannot be executed directly by Node.js.
+ *
+ * @param args Argument vector passed to npm.
+ * @returns Captured standard output.
+ */
+function runNpm(args) {
+  return run(npm, args, { shell: process.platform === "win32" });
+}
+
 try {
-  run(pnpm, ["--dir", "packages/engine", "pack", "--pack-destination", tarballs]);
-  run(pnpm, ["--dir", "packages/cli", "pack", "--pack-destination", tarballs]);
+  runPnpm(["--dir", "packages/engine", "pack", "--pack-destination", tarballs]);
+  runPnpm(["--dir", "packages/cli", "pack", "--pack-destination", tarballs]);
 
   const packed = readdirSync(tarballs);
   const engine = join(tarballs, packed.find((name) => name.startsWith("age.nt-engine-")) ?? "");
@@ -60,7 +82,7 @@ try {
   assert.ok(engine.endsWith(".tgz"), "engine tarball was not created");
   assert.ok(cli.endsWith(".tgz"), "CLI tarball was not created");
 
-  run(npm, [
+  runNpm([
     "install",
     "--prefix",
     prefix,
@@ -95,7 +117,8 @@ try {
   );
 
   const path = [join(prefix, "node_modules", ".bin"), process.env.PATH ?? ""].join(delimiter);
-  const help = run(join(prefix, "node_modules", ".bin", executable), ["help"], {
+  const cliEntry = join(installedCli, "bin", "nt.mjs");
+  const help = run(process.execPath, [cliEntry, "help"], {
     cwd: realpathSync(temp),
     env: { ...process.env, PATH: path },
   });
@@ -123,8 +146,9 @@ try {
   const isolatedHome = join(temp, "home");
   const mcpEnv = { ...process.env, PATH: path, HOME: isolatedHome, USERPROFILE: isolatedHome };
   run(
-    join(prefix, "node_modules", ".bin", executable),
+    process.execPath,
     [
+      cliEntry,
       "mcp",
       "trust",
       "fixture",
@@ -137,8 +161,8 @@ try {
     { cwd: temp, env: mcpEnv },
   );
   const listing = run(
-    join(prefix, "node_modules", ".bin", executable),
-    ["mcp", "list", "fixture", "--file", projectFile, "--json"],
+    process.execPath,
+    [cliEntry, "mcp", "list", "fixture", "--file", projectFile, "--json"],
     { cwd: temp, env: mcpEnv },
   );
   const parsed = JSON.parse(listing);
@@ -147,18 +171,17 @@ try {
   assert.equal(parsed.servers[0].tools[0].remoteName, "echo");
   const inspected = JSON.parse(
     run(
-      join(prefix, "node_modules", ".bin", executable),
-      ["mcp", "inspect", "fixture", "echo", "--file", projectFile, "--json"],
+      process.execPath,
+      [cliEntry, "mcp", "inspect", "fixture", "echo", "--file", projectFile, "--json"],
       { cwd: temp, env: mcpEnv },
     ),
   );
   assert.equal(inspected.tool.reference, "fixture.echo");
   const doctor = JSON.parse(
-    run(
-      join(prefix, "node_modules", ".bin", executable),
-      ["mcp", "doctor", "fixture", "--file", projectFile, "--json"],
-      { cwd: temp, env: mcpEnv },
-    ),
+    run(process.execPath, [cliEntry, "mcp", "doctor", "fixture", "--file", projectFile, "--json"], {
+      cwd: temp,
+      env: mcpEnv,
+    }),
   );
   assert.equal(doctor.servers[0].usable, true);
   assert.equal(doctor.servers[0].checks.length, 10);
