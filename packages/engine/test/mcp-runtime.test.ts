@@ -24,17 +24,17 @@ import { ProviderRegistry } from "#provider";
 import { VirtualSandbox } from "#sandbox";
 import { buildProject } from "#schema/build";
 import { runSession } from "#session";
+import { removeTemporaryDirectories } from "./temp-cleanup.ts";
 
 const temporary: string[] = [];
 
-afterEach(() => {
-  while (temporary.length) {
-    const target = temporary.pop();
-    if (target)
-      fs.rmSync(target, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+afterEach(async () => {
+  try {
+    await removeTemporaryDirectories(temporary);
+  } finally {
+    delete process.env.ALLOWED_MCP_TEST;
+    delete process.env.UNRELATED_HOST_SECRET;
   }
-  delete process.env.ALLOWED_MCP_TEST;
-  delete process.env.UNRELATED_HOST_SECRET;
 });
 
 function build(source: string, file = nodePath.join(process.cwd(), "test.nt")) {
