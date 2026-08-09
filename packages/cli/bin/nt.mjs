@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+/**
+ * @file Published `nt` executable bootstrap.
+ *
+ * Refuses unsupported Node.js versions before importing compiled CLI code,
+ * resolves `dist/main.js` relative to the installed package rather than the
+ * caller's working directory, and reports startup failures with their stack.
+ * Published installs always enter through this compiled artifact boundary.
+ */
+
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 

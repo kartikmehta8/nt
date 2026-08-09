@@ -3,7 +3,7 @@
   "displayName": "NT (Agent Lang)",
   "icon": "icon.png",
   "description": "Syntax highlighting and IntelliSense (go-to-definition, hover, completion, outline, references) for NT (.nt) agent-ecosystem files.",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "publisher": "KartikMehta",
   "license": "MIT",
   "author": "Kartik Mehta <kartikmehta202@gmail.com>",
@@ -56,6 +56,12 @@
         "language": "nt",
         "scopeName": "source.nt",
         "path": "./syntaxes/nt.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "nt",
+        "path": "./snippets/nt.json"
       }
     ]
   }

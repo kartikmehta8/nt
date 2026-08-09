@@ -42,6 +42,7 @@ const TEMPLATES: Record<TemplateName, Template> = {
 };
 
 /**
+ * Determines whether template name.
  * @param name A candidate template name.
  * @returns Whether the name refers to a known starter template.
  */
@@ -50,6 +51,7 @@ function isTemplateName(name: string): name is TemplateName {
 }
 
 /**
+ * Resolves one immutable starter template by its validated public name.
  * @param name The requested template name, or undefined for the default.
  * @returns The matching template, erroring when the name is not one of the known ones.
  */

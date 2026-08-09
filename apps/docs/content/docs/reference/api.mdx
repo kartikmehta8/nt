@@ -36,7 +36,7 @@ output:
 | `number`  | A number.           |
 | `boolean` | `true` or `false`.  |
 | `object`  | A nested structure. |
-| `array`   | A list of values.   |
+| `array`   | A list of strings.  |
 
 | Field option  | Type    | Values / default               |
 | ------------- | ------- | ------------------------------ |
@@ -101,7 +101,7 @@ config
 
 ### config.audit
 
-Two forms, and nothing else: a folder, or `off`.
+This is one scalar setting: use a folder, a disable word, or an enable word.
 
 | Value                                    | Meaning                                                |
 | ---------------------------------------- | ------------------------------------------------------ |
@@ -222,7 +222,7 @@ sandbox workspace
 
 A custom power an agent can call. `{placeholders}` are filled from the tool's
 `input`. The built-in tool names (`fs_read`, `fs_write`, `fs_list`, `bash`) and
-the `delegate_to_` prefix are reserved and cannot be used as tool names.
+the `delegate_to_` and `mcp__` prefixes are reserved and cannot be used as tool names.
 
 | Field            | Type    | Values / default                                                                |
 | ---------------- | ------- | ------------------------------------------------------------------------------- |
@@ -230,7 +230,7 @@ the `delegate_to_` prefix are reserved and cannot be used as tool names.
 | `type`           | string  | `shell` (default) or `http`.                                                    |
 | `command`        | string  | The command to run (for `shell` tools).                                         |
 | `url`            | string  | The address to call (for `http` tools).                                         |
-| `method`         | string  | HTTP method for `http` tools, such as `GET` or `POST`.                          |
+| `method`         | string  | HTTP method for `http` tools. Defaults to `GET`.                                |
 | `headers`        | map     | Request headers for `http` tools.                                               |
 | `input`          | map     | Typed inputs that fill `{placeholders}`.                                        |
 | `allow_internal` | boolean | Allow `http` tools to call private or localhost addresses. Defaults to `false`. |
@@ -256,6 +256,43 @@ A tool with `confirm: true` never runs unapproved: the CLI stops and asks, the
 `--yes` flag pre-approves, and a run with no way to ask (piped output, or an
 embedder that wired no `confirm` callback) refuses the call. Recommended for
 shell tools and `http` tools that `POST`.
+
+---
+
+## mcp
+
+Declares a local or remote MCP tool server. Loading and validation remain
+offline; connecting requires a separately persisted trust fingerprint.
+
+| Field                  | Type     | Values / default                                                               |
+| ---------------------- | -------- | ------------------------------------------------------------------------------ |
+| `description`          | string   | Human description. Defaults to the server name.                                |
+| `transport`            | string   | Required: `stdio` or `streamable_http`.                                        |
+| `tools`                | list/map | Selected remote names or policy entries. Defaults to none.                     |
+| `connect_timeout_ms`   | number   | 1,000–120,000. Defaults to `10000`.                                            |
+| `call_timeout_ms`      | number   | 1,000–600,000. Defaults to `60000`.                                            |
+| `max_concurrency`      | number   | 1–32 calls per server. Defaults to `4`.                                        |
+| `include_instructions` | boolean  | Include bounded server instructions as untrusted prompt text. Default `false`. |
+| `allow_internal`       | boolean  | Permit private-network destinations. Default `false`.                          |
+| `command`              | string   | Required for `stdio`; executed directly without a shell.                       |
+| `args`                 | list     | `stdio` arguments. Defaults to empty.                                          |
+| `cwd`                  | string   | `stdio` working directory. Defaults to `.` relative to the project root.       |
+| `allow_outside_cwd`    | boolean  | Permit a `stdio` cwd outside the project. Default `false`.                     |
+| `env`                  | map      | Explicit `stdio` environment additions; secret-shaped values require `env()`.  |
+| `url`                  | string   | Required HTTPS URL for `streamable_http`; literal loopback may use HTTP.       |
+| `auth`                 | map      | `none`, `bearer`, or `oauth` authentication.                                   |
+| `headers`              | map      | Extra remote headers; `Authorization` is forbidden.                            |
+| `allow_legacy_sse`     | boolean  | Explicitly permit legacy SSE fallback. Default `false`.                        |
+
+`auth.type` defaults to `none`. Bearer auth requires `token: env(NAME)` without
+a fallback literal. OAuth accepts `scopes: [...]` and is completed with
+`nt mcp auth SERVER`.
+
+A `tools` list gives each selected tool the default `required` approval. Map
+entries accept `approval` (`required`, `once`, or `never`), an optional local
+`description`, and a per-tool `call_timeout_ms`. Its effective value is capped
+at the server timeout. A wildcard `"*"` may not use `never`. See the
+[MCP guide](/docs/guides/mcp) for complete security and lifecycle examples.
 
 ---
 
@@ -348,3 +385,83 @@ Handy values built into the engine:
 | Max steps per agent run | `12`                     |
 | Max delegation depth    | `6`                      |
 | HTTP tool timeout       | 30 seconds               |
+
+---
+
+## TypeScript engine API
+
+Install `@age.nt/engine` when an application needs to embed NT instead of
+launching the CLI:
+
+```bash
+npm install @age.nt/engine
+```
+
+Published packages contain compiled JavaScript and require Node 22.18 or newer.
+The engine has three exact-pinned runtime dependencies: the official MCP client,
+Ajv, and Undici. Model-provider requests use the platform `fetch`.
+
+### Load and run
+
+```ts
+import { Engine } from "@age.nt/engine";
+
+const engine = Engine.load("age.nt", {
+  verbose: false,
+  onStep: (event) => console.error(event),
+  confirm: async (request) => {
+    console.error("Approval required", request.tool, request.input);
+    return false;
+  },
+});
+
+try {
+  const kind = engine.isRunnable("age");
+  const status = engine.bringUp();
+  const result = await engine.runAgent("age", { clues: "retired last year" });
+  const workflow = await engine.runWorkflow("estimate_age", { clues: "..." });
+  const chat = engine.createChat("age");
+} finally {
+  await engine.close();
+}
+```
+
+`EngineOptions` accepts `verbose`, `onStep`, `confirm`, `mcpTrustFile`, and
+`mcpCredentialFile`. The last two paths let an embedding application isolate
+MCP persistence. A closed engine rejects new runtime and MCP work; `close()` is
+idempotent and should always run in `finally`.
+
+### MCP methods
+
+| Method                                                    | Result                                                                           |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `listMcp(server?, all?)`                                  | Live status and selected tools; `all` includes unselected tools.                 |
+| `inspectMcp(server, remoteTool)`                          | Normalized server and exact advertised-tool metadata.                            |
+| `doctorMcp(server?)`                                      | Ten ordered diagnostics for one or every declaration.                            |
+| `mcpTrustInfo(server)`                                    | Definition, fingerprint, and current trust status.                               |
+| `trustMcp(server, expectedFingerprint?)`                  | Persists the current fingerprint and returns it.                                 |
+| `untrustMcp(server)`                                      | Whether a persisted trust decision was removed.                                  |
+| `authorizeMcp(server, redirectUrl, onRedirect, callback)` | Completes an embedder-owned OAuth callback and connects.                         |
+| `logoutMcp(server)`                                       | Whether resource-bound OAuth credentials were removed.                           |
+| `close()`                                                 | Bounded settlement and cleanup of calls, clients, sessions, and child processes. |
+
+Trust is never implicit. An embedder should display `mcpTrustInfo`, review its
+boundary, and pass the displayed fingerprint to `trustMcp` before live
+discovery. OAuth embedders own the loopback or application callback and pass its
+validated query parameters to `authorizeMcp`.
+
+### Other exports
+
+The package barrel also exports:
+
+- `loadProject` and `discoverNtFiles` for offline loading;
+- `ChatSession` for stateful conversations;
+- `scaffoldProject`, `DEFAULT_TEMPLATE`, `SCAFFOLD_ENTRY_FILE`, and
+  `TEMPLATE_NAMES` for starter projects;
+- `auditFiles` and `readAuditEntries` for bounded audit-log reads;
+- `NtError` and `McpError` (`McpError.code` is a stable `MCP_*` value);
+- typed project definitions, statuses, results, callbacks, MCP metadata,
+  diagnostics, and scaffold shapes exported from the package root.
+
+Internal `#...` modules are not public API. Import consumers only from
+`@age.nt/engine`.

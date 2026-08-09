@@ -6,9 +6,25 @@
  * — used for both agents and subagents, `SandboxDef`, `ToolDef`, `SkillDef`,
  * `WorkflowDef`, `ProviderDef`, `ConfigDef`, `AuditConfig`), plus the assembled
  * `Project`, the `RunResult` / `TokenUsage` shapes the engine returns, and the
- * `ScaffoldFile` a starter template is made of. Types only; the entire module is
- * erased at runtime.
+ * `ScaffoldFile` a starter template is made of. MCP definitions and inspection
+ * results are re-exported from `mcp/public-types.ts` to keep this core model
+ * readable. Types only; the entire module is erased at runtime.
  */
+
+import type { McpApprovalPolicy, McpServerDef } from "#mcp/public-types";
+
+export type {
+  McpApprovalPolicy,
+  McpAuthDef,
+  McpDoctorCheck,
+  McpDoctorResult,
+  McpInspectResult,
+  McpServerDef,
+  McpServerStatus,
+  McpToolInfo,
+  McpToolPolicy,
+  McpTransportKind,
+} from "#mcp/public-types";
 
 export type Scalar = string | number | boolean | null;
 export type NtValue = Scalar | NtValue[] | { [k: string]: NtValue } | EnvRef;
@@ -27,6 +43,7 @@ export type BlockKind =
   | "import"
   | "config"
   | "provider"
+  | "mcp"
   | "agent"
   | "subagent"
   | "sandbox"
@@ -156,6 +173,7 @@ export interface Project {
   subagents: Map<string, AgentDef>;
   sandboxes: Map<string, SandboxDef>;
   tools: Map<string, ToolDef>;
+  mcpServers: Map<string, McpServerDef>;
   skills: Map<string, SkillDef>;
   workflows: Map<string, WorkflowDef>;
   files: string[];
@@ -168,7 +186,8 @@ export interface RunResult {
   usage: TokenUsage;
 }
 
-export type StepEventKind = "model" | "tool" | "delegation" | "workflow-step";
+export type StepEventKind =
+  "model" | "tool" | "delegation" | "workflow-step" | "mcp-connect" | "tool-progress";
 
 export interface StepEvent {
   kind: StepEventKind;
@@ -182,6 +201,10 @@ export interface ConfirmRequest {
   tool: string;
   input: Record<string, unknown>;
   depth: number;
+  server?: string;
+  remoteTool?: string;
+  approvalPolicy?: McpApprovalPolicy;
+  serverOrigin?: string;
 }
 
 export interface TokenUsage {

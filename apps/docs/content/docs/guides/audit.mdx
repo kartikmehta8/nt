@@ -12,6 +12,11 @@ prove it later.
 
 The log is **on by default** and needs no setup.
 
+MCP entries add the server, remote tool, transport, approval policy, and
+negotiated protocol version. MCP binary content is replaced with descriptive
+placeholders before logging, and long base64-like material is omitted. Known
+bearer and OAuth credentials are redacted.
+
 ## Where it lives
 
 One file per day, in `~/.nt/audit`:
@@ -45,11 +50,15 @@ it never rewrites or reorders what is already there.
 | `agent`       | Which agent or subagent made the call.                      |
 | `depth`       | How deep the delegation went: `0` is your top-level agent.  |
 | `tool`        | The tool name that was called.                              |
-| `kind`        | `builtin`, `custom`, `delegate`, or `unknown`.              |
+| `kind`        | `builtin`, `custom`, `delegate`, `mcp`, or `unknown`.       |
 | `input`       | The arguments the model chose, with secrets removed.        |
 | `ok`          | Whether the call succeeded.                                 |
 | `duration_ms` | How long it took.                                           |
 | `output`      | What the tool returned, shortened and with secrets removed. |
+
+MCP calls also record `server`, `remote_tool`, `transport`, `approval`, and
+`protocol_version`. Those fields are absent from non-MCP entries, so existing
+JSONL readers remain compatible.
 
 ## Reading the log
 
@@ -106,8 +115,9 @@ Nothing is written after that, and existing files are left untouched. `off`,
 `none`, `disabled`, `no`, and `false` all work. To turn it back on, use `on` or
 name a folder.
 
-<Callout title="Two settings, one field">
-  `audit` is either **off** or **the folder to write to**. There is nothing else to configure.
+<Callout title="One scalar field">
+  `audit` accepts a folder, a disable word such as `off`, or an enable word such as `on`. It never
+  accepts a nested map, list, or `env()` reference.
 </Callout>
 
 ## What gets removed

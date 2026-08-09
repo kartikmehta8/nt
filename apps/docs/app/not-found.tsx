@@ -1,3 +1,10 @@
+/**
+ * @file Branded not-found route for the NT website.
+ *
+ * Gives missing routes a concise explanation and direct recovery links to the
+ * landing page and documentation index.
+ */
+
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -5,7 +12,10 @@ export const metadata: Metadata = {
   title: "Page not found",
 };
 
-/** The 404 page, styled to match the site's monochrome landing look. */
+/**
+ * Renders the not found component from its documented props.
+ * @returns The branded 404 page with home and documentation recovery links.
+ */
 export default function NotFound() {
   return (
     <main className="nt-notfound">

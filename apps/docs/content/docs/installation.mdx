@@ -55,6 +55,12 @@ The `-g` means "global", so you can use the `nt` command from any folder.
   Node first.
 </Callout>
 
+<Callout title="Runtime dependencies are included">
+  NT is not a zero-dependency runtime. Installing the CLI also installs the engine's exact-pinned
+  MCP client, Ajv for JSON Schema validation, and Undici for guarded HTTP connections. You do not
+  need to install these packages separately.
+</Callout>
+
 ## Step 2: Set your AI key
 
 NT talks to a real AI model, so it needs a key. If you are using Anthropic

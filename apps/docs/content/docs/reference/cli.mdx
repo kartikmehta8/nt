@@ -30,24 +30,42 @@ nt <command> [options]
 | `nt run <name>`  | Run one agent, subagent, or workflow.                    |
 | `nt chat <name>` | Chat with an agent, back and forth.                      |
 | `nt audit`       | Show where tool calls are logged, and the recent ones.   |
+| `nt mcp …`       | Trust, authorize, inspect, diagnose, and list MCP tools. |
 
 ## Options
 
-| Option               | What it does                                                                 |
-| -------------------- | ---------------------------------------------------------------------------- |
-| `-f, --file FILE`    | The main `.nt` file to load. Its imports are followed. Defaults to `age.nt`. |
-| `-d, --dir FOLDER`   | Load every `.nt` file in a folder instead.                                   |
-| `-i, --input JSON`   | The input to give, written as JSON.                                          |
-| `-m, --message TEXT` | A quick way to send plain text instead of JSON.                              |
-| `--run NAME`         | With `up`, run this agent or workflow after setup.                           |
-| `-n, --tail N`       | With `audit`, how many recent calls to show. Defaults to 20.                 |
-| `--json`             | With `audit`, print the raw JSONL lines and nothing else.                    |
-| `-t, --template`     | With `setup`, which starter to write: `minimal` or `full`.                   |
-| `--force`            | With `setup`, replace files that already exist.                              |
-| `--show-tool-calls`  | With `up`, `run`, and `chat`, name each tool call and delegation live.       |
-| `-y, --yes`          | Pre-approve tools declared with `confirm: true` instead of asking.           |
-| `-v, --verbose`      | Show extra detail about what the agent is doing.                             |
-| `-h, --help`         | Show help.                                                                   |
+| Option                    | What it does                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `-f, --file FILE`         | The main `.nt` file to load. Its imports are followed. Defaults to `age.nt`. |
+| `-d, --dir FOLDER`        | Load every `.nt` file in a folder instead.                                   |
+| `-i, --input JSON`        | The input to give, written as JSON.                                          |
+| `-m, --message TEXT`      | A quick way to send plain text instead of JSON.                              |
+| `--run NAME`              | With `up`, run this agent or workflow after setup.                           |
+| `-n, --tail N`            | With `audit`, how many recent calls to show. Defaults to 20.                 |
+| `--json`                  | Print machine-readable output for `audit` and MCP inspection commands.       |
+| `-t, --template`          | With `setup`, which starter to write: `minimal` or `full`.                   |
+| `--force`                 | With `setup`, replace files that already exist.                              |
+| `--show-tool-calls`       | With `up`, `run`, and `chat`, name each tool call and delegation live.       |
+| `-y, --yes`               | Pre-approve gated NT and MCP calls; never bypass trust or OAuth.             |
+| `--allow-outside-imports` | Permit imported files outside the project directory.                         |
+| `--all`                   | With `mcp list`, include tools not selected in source.                       |
+| `--fingerprint`           | Expected SHA-256 value for non-interactive MCP trust.                        |
+| `--non-interactive`       | Disable trust prompts; requires `--fingerprint`.                             |
+| `-v, --verbose`           | Show extra detail about what the agent is doing.                             |
+| `-h, --help`              | Show help.                                                                   |
+
+## MCP commands
+
+`nt mcp list [SERVER]`, `inspect SERVER TOOL`, and `doctor [SERVER]` connect to
+trusted servers and accept `--json`. `trust SERVER` persists the exact reviewed
+definition; `untrust SERVER` removes it. `auth SERVER` runs the OAuth browser
+flow and `logout SERVER` removes that server's stored credentials. See
+[Model Context Protocol guide](/docs/guides/mcp).
+
+`doctor` reports ten ordered checks per server: schema, trust, endpoint,
+connection, authentication, capabilities, catalog, selection, schemas, and
+shutdown. Failed prerequisites leave dependent checks explicitly skipped. The
+command exits with status `1` unless every requested server is usable.
 
 ## Starting a project
 
@@ -224,5 +242,6 @@ Set `audit` in your `config` block to change the folder or turn logging off. See
 
 <Callout title="Which commands need an AI key">
   `up`, `run`, and `chat` talk to a real model, so they need your key set (for example
-  `ANTHROPIC_API_KEY`). `setup`, `validate`, `list`, `graph`, and `audit` do not.
+  `ANTHROPIC_API_KEY`). `setup`, `validate`, `list`, `graph`, `audit`, and `mcp` do not call a
+  model. Live MCP commands still require server trust and any declared bearer or OAuth credentials.
 </Callout>

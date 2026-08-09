@@ -2,21 +2,25 @@
  * @file Workspace index of NT declarations for the VS Code language features.
  *
  * `scanDefinitions` extracts each declaration (kind, name, location, inline
- * description) from a file's text; `NtIndex` maintains a name-to-definitions map
- * across the workspace, refreshed incrementally per document or fully via an
- * injected file finder — keeping the scanning logic testable without the
- * `vscode` API.
+ * description, and MCP transport/policies) from source; `NtIndex` maintains a
+ * name-to-definitions map across the workspace, refreshed incrementally per
+ * document or fully via an injected file finder. Dotted MCP tool references map
+ * back to policy entries or their server declaration. All scanning is bounded,
+ * source-only, and testable without importing the `vscode` API.
  */
 
 const fs = require("node:fs");
+const { scanMcpToolPolicies } = require("./mcpIndex");
 
-const DECL_RE = /^(agent|subagent|sandbox|tool|skill|workflow|provider)\b[ \t]+([A-Za-z0-9_-]+)/;
+const DECL_RE =
+  /^(agent|subagent|sandbox|tool|skill|workflow|provider|mcp)\b[ \t]+([A-Za-z0-9_-]+)/;
 const DESC_RE = /^\s*description:[ \t]+(.*\S)/;
 
 const MAX_SCANNED_FILES = 500;
 const MAX_SCANNED_FILE_BYTES = 1_000_000;
 
 /**
+ * Reads one workspace file only when it is below the extension's byte limit.
  * @param fsPath An on-disk path to a workspace .nt file.
  * @returns The file's text, or null when it is unreadable or exceeds the size cap.
  */
@@ -37,6 +41,7 @@ const BUILTIN_TOOLS = {
 };
 
 /**
+ * Finds the first inline description within one declaration block.
  * @param lines All lines of a file.
  * @param declLine The zero-based index of a declaration line.
  * @returns The block's inline `description:` text, or an empty string.
@@ -51,6 +56,24 @@ function findDescription(lines, declLine) {
 }
 
 /**
+ * Combines a source description with the declaration's static MCP transport.
+ * @param lines All lines of a file.
+ * @param declarationLine The zero-based MCP declaration line.
+ * @returns A hover summary that always includes the statically declared transport.
+ */
+function findMcpDescription(lines, declarationLine) {
+  const description = findDescription(lines, declarationLine);
+  let transport = "unspecified";
+  for (let index = declarationLine + 1; index < lines.length; index++) {
+    if (/^\S/.test(lines[index])) break;
+    const match = lines[index].match(/^\s*transport:\s*(stdio|streamable_http)\s*$/);
+    if (match) transport = match[1];
+  }
+  return `${description ? `${description} — ` : ""}MCP server — transport ${transport}`;
+}
+
+/**
+ * Scans definitions into the structures used by later processing.
  * @param text The full text of a .nt file.
  * @param uri The file's URI, stored on each definition.
  * @returns One definition descriptor per declaration found in the file.
@@ -69,20 +92,26 @@ function scanDefinitions(text, uri) {
       line: i,
       start,
       end: start + m[2].length,
-      description: findDescription(lines, i),
+      description: m[1] === "mcp" ? findMcpDescription(lines, i) : findDescription(lines, i),
     });
+    if (m[1] === "mcp") scanMcpToolPolicies(lines, i, m[2], uri, defs);
   }
   return defs;
 }
 
 class NtIndex {
+  /**
+   * Creates an empty name-to-definition index for one extension workspace.
+   */
   constructor() {
     this.byName = new Map();
   }
 
   /**
+   * Atomically replaces every indexed symbol originating from one document.
    * @param uri The file whose definitions are being recorded.
    * @param text The file's current text.
+   * @returns Nothing; prior symbols for the URI are atomically replaced.
    */
   updateDoc(uri, text) {
     this.removeUri(uri);
@@ -90,7 +119,9 @@ class NtIndex {
   }
 
   /**
+   * Removes all definitions belonging to one URI while preserving duplicates elsewhere.
    * @param uri The file whose definitions should be dropped from the index.
+   * @returns Nothing; other files and duplicate definitions remain indexed.
    */
   removeUri(uri) {
     const key = uri.toString();
@@ -102,7 +133,9 @@ class NtIndex {
   }
 
   /**
+   * Adds one discovered definition while preserving same-name duplicates.
    * @param def A definition descriptor to record.
+   * @returns Nothing; definitions with the same name are retained together.
    */
   add(def) {
     const list = this.byName.get(def.name) ?? [];
@@ -111,6 +144,7 @@ class NtIndex {
   }
 
   /**
+   * Looks up every indexed definition that exactly matches a name.
    * @param name An entity name.
    * @returns Every definition declared with that name.
    */
@@ -119,6 +153,7 @@ class NtIndex {
   }
 
   /**
+   * Collects indexed definitions whose declaration kind is requested.
    * @param kinds Declaration kinds to include.
    * @returns Every definition whose kind is in the given list.
    */
@@ -134,6 +169,7 @@ class NtIndex {
    * the extension host.
    *
    * @param findFiles An async function returning the workspace's .nt file URIs.
+   * @returns A promise that settles after the bounded workspace rebuild.
    */
   async refresh(findFiles) {
     this.byName = new Map();

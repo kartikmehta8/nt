@@ -1,3 +1,11 @@
+/**
+ * @file Root HTML layout and site-wide metadata for agent-lang.xyz.
+ *
+ * Defines canonical website and social metadata, imports the global design
+ * system, and installs the Fumadocs provider in intentionally light-only mode.
+ * Route-specific layouts supply navigation and content structure beneath it.
+ */
+
 import "./global.css";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
@@ -35,11 +43,15 @@ export const viewport = {
   themeColor: "#ffffff",
 };
 
+/**
+ * Renders the root layout component from its documented props.
+ * @param children Home or documentation route content.
+ * @returns The root HTML document with the shared Fumadocs provider.
+ */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
-        {/* Light theme only — next-themes disabled so no `dark` class is applied. */}
         <RootProvider theme={{ enabled: false }}>{children}</RootProvider>
       </body>
     </html>

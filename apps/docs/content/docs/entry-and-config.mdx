@@ -164,13 +164,14 @@ lines in every agent.
 | `model`      | The default AI model, written as `provider/model-name`.                                      |
 | `sandbox`    | The default workspace agents run in.                                                         |
 | `thinking`   | How hard the model thinks. One of `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. |
-| `max_tokens` | The most words the model can use in a reply.                                                 |
+| `max_tokens` | The model's maximum output-token budget for one reply.                                       |
 
 ### providers
 
-Where the AI comes from. `anthropic` (Claude) and `openai` are built in. You
-still list the one you use here so NT knows your key. See
-[Connect a model](/docs/guides/providers) for details.
+Where the AI comes from. `anthropic` (Claude) and `openai` are built in and read
+`ANTHROPIC_API_KEY` or `OPENAI_API_KEY` without a declaration. Add a provider
+entry only to override a built-in or configure another OpenAI-compatible
+service. See [Connect a model](/docs/guides/providers) for details.
 
 <Callout type="warn" title="Keep your key safe">
   Always write your key as `env(ANTHROPIC_API_KEY)`, not the real key. That reads it from your

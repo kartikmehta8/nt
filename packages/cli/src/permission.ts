@@ -1,14 +1,12 @@
 /**
  * @file The human-in-the-loop permission prompt for gated tool calls.
  *
- * Tools declared with `confirm: true` stop the run until the user approves
- * them. `makeConfirm` builds the engine's confirm callback: `--yes`
- * pre-approves everything, a non-interactive terminal denies (a gated tool
- * must never run unseen in a script), and otherwise the thinking line pauses
- * while an interactive selector takes the terminal — arrow keys move between
- * Yes and No, Enter confirms, `y`/`n` answer directly, and Esc denies. While
- * the selector owns stdin, any other listeners (the chat REPL's readline) are
- * detached and restored afterwards so keystrokes are never double-read.
+ * Custom `confirm: true` tools and MCP `required`/`once` policies share this
+ * prompt. `--yes` pre-approves invocation only, a non-interactive terminal
+ * denies, and otherwise the thinking line pauses while an interactive selector
+ * owns stdin. Prompts include redacted MCP identity, policy, origin, and input;
+ * trust and OAuth remain separate prerequisites. Detached readline listeners,
+ * raw mode, cursor state, and paused input are restored after every answer.
  */
 
 import type { ConfirmRequest } from "@age.nt/engine";
@@ -55,16 +53,35 @@ export interface ConfirmOptions {
 }
 
 /**
+ * Returns a one-line description of who wants to run what, with what input.
  * @param request The gated tool call.
  * @returns A one-line description of who wants to run what, with what input.
  */
 export function describeRequest(request: ConfirmRequest): string {
-  const input = JSON.stringify(request.input);
+  const input = JSON.stringify(redactInput(request.input));
   const shown = input.length > MAX_SHOWN_INPUT ? input.slice(0, MAX_SHOWN_INPUT - 1) + "…" : input;
-  return `${request.agent} wants to run ${bold(request.tool)}(${shown})`;
+  const tool = request.server ? `${request.server}.${request.remoteTool}` : request.tool;
+  const policy = request.approvalPolicy
+    ? ` · ${request.approvalPolicy === "once" ? "approval cached for this engine run" : "approval required per call"}`
+    : "";
+  const origin = request.serverOrigin ? ` · ${request.serverOrigin}` : "";
+  return `${request.agent} wants to run ${bold(tool)}(${shown})${policy}${origin}`;
+}
+
+function redactInput(value: unknown, key = "", depth = 0): unknown {
+  if (/token|secret|password|authorization|api[_-]?key/i.test(key)) return "[redacted]";
+  if (depth > 8 || value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((item) => redactInput(item, key, depth + 1));
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([name, item]) => [
+      name,
+      redactInput(item, name, depth + 1),
+    ]),
+  );
 }
 
 /**
+ * Returns the two option lines with the pointer on the highlighted one.
  * @param approve Whether the Yes option is highlighted.
  * @returns The two option lines with the pointer on the highlighted one.
  */

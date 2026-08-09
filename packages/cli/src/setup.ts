@@ -13,6 +13,7 @@ import type { Args } from "#args";
 import { bold, cyan, dim, green, out, printWarnings, yellow } from "#format";
 
 /**
+ * Returns the name to run first: the configured entry, or the first declared agent.
  * @param project The freshly scaffolded project.
  * @returns The name to run first: the configured entry, or the first declared agent.
  */
@@ -21,6 +22,7 @@ function entryName(project: Project): string {
 }
 
 /**
+ * Returns the shortest way to name that folder from the current one, or null when it is the current one.
  * @param dir The absolute folder the project was written to.
  * @returns The shortest way to name that folder from the current one, or null when it is the current one.
  */
@@ -31,6 +33,7 @@ function changeDirectoryTo(dir: string): string | null {
 }
 
 /**
+ * Writes next steps in the caller-selected output format.
  * @param result Where the project was written.
  * @param project The loaded project, used to name what to run.
  */
@@ -47,7 +50,9 @@ function printNextSteps(result: ScaffoldResult, project: Project): void {
 }
 
 /**
+ * Installs the selected editor integration after explicit replacement checks.
  * @param args The parsed arguments.
+ * @returns Nothing; created files and next steps are printed to stdout.
  */
 export function cmdSetup(args: Args): void {
   const result = scaffoldProject(args.positional[1] ?? ".", {

@@ -85,7 +85,7 @@ async function runGreet(
   const messages = [{ role: "user" as const, content: "go" }];
   await driveConversation(
     context,
-    buildRuntime(context, agentOf(project, "a")),
+    await buildRuntime(context, agentOf(project, "a")),
     new VirtualSandbox({ cwd: "/workspace", env: {} }),
     messages,
     0,

@@ -1,0 +1,112 @@
+---
+title: Security and authentication
+description: Understand MCP trust, network boundaries, credentials, approvals, untrusted metadata, and bounded results.
+---
+
+MCP servers are external code and data sources. A local server runs with your
+user privileges; a remote server can return model-visible content. NT therefore
+treats trust, exposure, and per-call approval as separate controls.
+
+## Trust a reviewed definition
+
+```bash
+nt mcp trust github
+nt mcp untrust github
+```
+
+Interactive trust displays the transport and executable or URL; it also shows
+the working directory and environment names for stdio, or the authentication
+mode and header names for HTTP. Network escape hatches and the fingerprint are
+always visible. The trust record is scoped to the canonical project and
+declaration. Changes to the command, arguments, working directory, transport,
+URL, auth type, header or environment names, or security escape hatches
+invalidate it.
+
+Automation should compare the fingerprint it reviewed instead of answering a
+prompt blindly:
+
+```bash
+nt mcp trust github --fingerprint sha256:... --non-interactive
+```
+
+The command fails if the current fingerprint differs. Trust records contain no
+secret values.
+
+## Bearer tokens and headers
+
+Bearer credentials and sensitive headers should come from environment
+references:
+
+```yaml
+auth:
+  type: bearer
+  token: env(MCP_TOKEN)
+headers:
+  x-organization: env(MCP_ORGANIZATION)
+```
+
+Literal bearer tokens, fallback token literals, and custom `Authorization`
+headers are rejected. Secret values are resolved only when a connection is
+needed and are included in audit redaction.
+
+## OAuth
+
+Declare the scopes the project may request, then authorize explicitly:
+
+```yaml
+auth:
+  type: oauth
+  scopes: [files.read, files.write]
+```
+
+```bash
+nt mcp trust drive
+nt mcp auth drive
+nt mcp logout drive
+```
+
+Authorization uses SDK discovery, PKCE, issuer and protected-resource checks,
+token refresh, and bounded scope step-up. The callback listener binds only to
+an ephemeral `127.0.0.1` port and expires after five minutes.
+
+By default, credentials are stored in `~/.nt/mcp/credentials.json` with
+owner-only directory and file permissions and atomic updates. This protects
+against other local users, but it is not hardware-backed encryption. Set
+`NT_MCP_CREDENTIAL_STORE=memory` for ephemeral CI or tests; credentials then
+disappear when the process exits.
+
+## Network boundaries
+
+Remote requests reject private, loopback, link-local, multicast, and otherwise
+unsafe destinations by default. The checks apply to the declared URL,
+redirects, and DNS/socket resolution to limit redirect abuse and DNS rebinding.
+Use `allow_internal: true` only for a reviewed server that intentionally lives
+on an internal network; the setting becomes part of the trust fingerprint.
+
+## Tool approval
+
+| Policy     | Behaviour                                                                         |
+| ---------- | --------------------------------------------------------------------------------- |
+| `required` | Ask before every invocation. This is the default.                                 |
+| `once`     | Ask on the first invocation of that exact server/tool during one engine lifetime. |
+| `never`    | Invoke without a prompt after trust, selection, and assignment all pass.          |
+
+`--yes` answers tool approval prompts only. It does not trust a new or changed
+server and cannot perform an OAuth login. Server annotations such as
+`readOnlyHint` are display metadata and never weaken these policies.
+
+## Treat server content as untrusted
+
+Server instructions are excluded by default. With `include_instructions: true`,
+NT clearly delimits them as untrusted text before adding them to the system
+prompt. Tool descriptions and annotations are also untrusted.
+
+Tool input is validated against the advertised JSON Schema before dispatch.
+Structured output is validated when the server provides an output schema.
+Result text and JSON are size-bounded, binary content is omitted, and resource
+links are described but never fetched automatically. A result marked as an MCP
+tool error is returned to the model as a recoverable tool error; connection,
+trust, authentication, and invalid-schema failures retain stable `MCP_*` codes.
+
+For operational checks around these boundaries, continue to [Operate and
+troubleshoot](/docs/guides/mcp/operations).

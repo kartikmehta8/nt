@@ -1,6 +1,8 @@
 /**
  * @file Interpolation-safety and structured-output tests: shell quoting,
- * URL encoding, JSON extraction, and output-schema conformance.
+ * URL encoding, JSON extraction, and output-schema conformance. These cases
+ * exercise the shared boundary used before custom tools run and after model
+ * responses return, with adversarial punctuation kept as literal data.
  */
 
 import assert from "node:assert/strict";
@@ -52,6 +54,16 @@ test("conformsToOutputSchema checks required fields and primitive types", () => 
   assert.equal(conformsToOutputSchema({ age: 3, tags: [] }, schema), true);
   assert.equal(conformsToOutputSchema({ age: "3", tags: [] }, schema), false);
   assert.equal(conformsToOutputSchema({ age: 3 }, schema), false);
+});
+
+test("structured output preserves fields declared with required false", () => {
+  const schema = buildOutputSchema([
+    { name: "required", type: "string", required: true },
+    { name: "optional", type: "number", required: false },
+  ]);
+  assert.deepEqual(schema.required, ["required"]);
+  assert.equal(conformsToOutputSchema({ required: "present" }, schema), true);
+  assert.equal(conformsToOutputSchema({ required: "present", optional: 2 }, schema), true);
 });
 
 test("parseStructuredOutput returns null on schema mismatch and parses prose-wrapped JSON", () => {

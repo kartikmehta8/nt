@@ -14,6 +14,7 @@
 import type { FieldSpec, FieldType } from "#types";
 
 /**
+ * Returns the matching JSON-schema fragment.
  * @param t A declared field type.
  * @returns The matching JSON-schema fragment.
  */
@@ -33,6 +34,7 @@ function jsonType(t: FieldType): Record<string, unknown> {
 }
 
 /**
+ * Builds a strict object schema for declared agent or tool inputs.
  * @param fields The tool/agent input fields.
  * @returns A JSON schema describing the input object, with declared required fields.
  */
@@ -49,8 +51,9 @@ export function buildInputSchema(fields: FieldSpec[]): Record<string, unknown> {
 }
 
 /**
+ * Builds a structured-output schema that preserves required and optional fields.
  * @param fields The agent output fields.
- * @returns A strict JSON schema where every field is required, for structured output.
+ * @returns A strict object schema whose required list matches the declaration.
  */
 export function buildOutputSchema(fields: FieldSpec[]): Record<string, unknown> {
   const properties: Record<string, unknown> = {};
@@ -58,12 +61,13 @@ export function buildOutputSchema(fields: FieldSpec[]): Record<string, unknown> 
   return {
     type: "object",
     properties,
-    required: fields.map((f) => f.name),
+    required: fields.filter((field) => field.required).map((field) => field.name),
     additionalProperties: false,
   };
 }
 
 /**
+ * Determines whether a value satisfies type.
  * @param value A supplied argument value.
  * @param type The declared field type.
  * @returns Whether the value matches the declared type.
@@ -103,6 +107,7 @@ export function validateInput(fields: FieldSpec[], input: Record<string, unknown
 }
 
 /**
+ * Returns the template with known placeholders replaced.
  * @param template A string containing `{name}` placeholders.
  * @param vars Values to substitute; unknown placeholders are left intact.
  * @returns The template with known placeholders replaced.
@@ -114,6 +119,7 @@ export function interpolate(template: string, vars: Record<string, unknown>): st
 }
 
 /**
+ * Returns the value wrapped in single quotes so it is passed as one literal word.
  * @param value A model-supplied value destined for a shell command.
  * @returns The value wrapped in single quotes so it is passed as one literal word.
  */
@@ -122,6 +128,7 @@ export function shellQuote(value: string): string {
 }
 
 /**
+ * Expands shell placeholders using validated values.
  * @param template A shell command template containing `{name}` placeholders.
  * @param vars Model-supplied values; each is single-quoted before substitution.
  * @returns The command with placeholders replaced by shell-safe literals.
@@ -133,6 +140,7 @@ export function interpolateShell(template: string, vars: Record<string, unknown>
 }
 
 /**
+ * Expands url placeholders using validated values.
  * @param template A URL template containing `{name}` placeholders.
  * @param vars Model-supplied values; each is percent-encoded before substitution.
  * @returns The URL with placeholders replaced by encoded components.
@@ -144,6 +152,7 @@ export function interpolateUrl(template: string, vars: Record<string, unknown>):
 }
 
 /**
+ * Extracts json from the supplied source data.
  * @param text Assistant text that should contain a JSON object.
  * @returns The parsed object from the raw text, a fenced block, or the outermost braces; null when none parses.
  */
@@ -167,6 +176,7 @@ export function extractJson(text: string): Record<string, unknown> | null {
 }
 
 /**
+ * Determines whether a value satisfies output schema.
  * @param value A parsed candidate output object.
  * @param schema The JSON schema built from the agent's declared `output:` fields.
  * @returns Whether every required field is present and each present field matches its declared type.

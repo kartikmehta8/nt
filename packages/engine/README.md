@@ -18,10 +18,9 @@ for this package directly when you want to **embed NT in your own app**.
 npm install @age.nt/engine
 ```
 
-Requires **Node ≥ 22.18**. There is **no build step** — the package's `exports`
-point straight at the TypeScript source, which Node runs via native type
-stripping. The engine has **zero runtime dependencies** and reaches the model
-over `fetch`.
+Requires **Node ≥ 22.18**. Published packages contain compiled JavaScript. The
+engine uses the official MCP TypeScript client, Ajv, and Undici at runtime, and
+reaches model providers over `fetch`.
 
 ## Usage
 
@@ -31,11 +30,12 @@ over `fetch`.
 import { Engine } from "@age.nt/engine";
 
 const engine = Engine.load("age.nt");
-const result = await engine.runAgent("age", { clues: "retired last year" });
-
-console.log(result.output); // { age: 66, reason: "…" } (parsed to the output schema)
-console.log(result.text); // the raw model text
-console.log(result.usage); // { input, output } token counts
+try {
+  const result = await engine.runAgent("age", { clues: "retired last year" });
+  console.log(result.output); // { age: 66, reason: "…" }
+} finally {
+  await engine.close(); // closes MCP subprocesses and HTTP sessions
+}
 ```
 
 ### Run a workflow
@@ -102,12 +102,46 @@ import { loadProject } from "@age.nt/engine";
 const { project, warnings } = loadProject("age.nt");
 console.log([...project.agents.keys()]); // ["age"]
 console.log([...project.tools.keys()]); // ["current_year", …]
+console.log([...project.mcpServers.keys()]);
 warnings.forEach((w) => console.warn(w));
 ```
 
+### Inspect and manage MCP servers
+
+Live MCP methods require the same explicit trust used by the CLI. They never
+implicitly trust a declaration:
+
+```ts
+const engine = Engine.load("age.nt");
+try {
+  const trust = engine.mcpTrustInfo("github");
+  engine.trustMcp("github", trust.fingerprint);
+
+  const servers = await engine.listMcp("github", true);
+  const tool = await engine.inspectMcp("github", "search_repositories");
+  const diagnostics = await engine.doctorMcp("github");
+  console.log({ servers, tool, diagnostics });
+} finally {
+  await engine.close();
+}
+```
+
+`trustMcp` and `untrustMcp` manage exact fingerprints. `authorizeMcp` and
+`logoutMcp` are available to embedders implementing an OAuth callback. Always
+call `close()` so subprocesses, remote sessions, and in-flight calls receive a
+bounded shutdown.
+
+The production MCP dependencies are exact-pinned: the official
+`@modelcontextprotocol/client` SDK handles negotiation, transports, and OAuth;
+Ajv validates JSON Schema; and Undici enforces socket-time DNS-rebinding
+protection. All three use permissive MIT licenses. Exact versions keep this
+protocol- and security-sensitive surface reviewable, while Dependabot checks
+runtime updates weekly.
+
 ## Public API
 
-Everything is exported from the package barrel:
+The package barrel is the only supported import boundary. Its main runtime
+exports are:
 
 | Export             | What it is                                                 |
 | ------------------ | ---------------------------------------------------------- |
@@ -120,6 +154,8 @@ Everything is exported from the package barrel:
 | `readAuditEntries` | Read recent tool-call entries out of an audit folder.      |
 | `auditFiles`       | List the audit log files in a folder, oldest first.        |
 | `NtError`          | Error type carrying a source `Location`.                   |
+| `McpError`         | MCP failure with a stable machine-readable error code.     |
+| MCP types          | Server, tool, inspection, doctor, auth, and policy shapes. |
 
 ## Security defaults
 
@@ -132,5 +168,7 @@ Everything is exported from the package barrel:
 - **Every tool call is audited** — appended as JSONL to `~/.nt/audit` (owner-only
   permissions) with credentials redacted. Point `config.audit` at another folder,
   or set `audit: off` to disable it.
+- **MCP connections require exact persisted trust**, while MCP calls separately
+  default to per-call approval. `--yes` never bypasses trust or OAuth.
 
 See the full language and API reference at **https://agent-lang.xyz/docs**.

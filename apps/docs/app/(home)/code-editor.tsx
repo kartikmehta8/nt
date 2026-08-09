@@ -1,259 +1,38 @@
+/**
+ * @file Interactive read-only NT project preview on the documentation homepage.
+ *
+ * Rotates static example files inside a VS Code-style shell and lets visitors
+ * select a file manually. Source data and presentation tokenization live in
+ * focused sibling modules, keeping this client component concerned only with
+ * state, timing, accessibility, and rendering.
+ */
+
 "use client";
 
 import { useEffect, useState } from "react";
-import { NtFileIcon, FolderIcon } from "@/components/logos";
+import { FolderIcon, NtFileIcon } from "@/components/logos";
+import { PREVIEW_FILES } from "./code-editor-files";
+import { tokenizePreview } from "./code-editor-tokenize";
 
-/* ---------------------------------------------------------------------------
-   The example ecosystem's files, shown read-only in a VS Code-style panel.
-   Content mirrors example/*.nt in the repo.
-   ------------------------------------------------------------------------- */
-
-interface NtFile {
-  id: string;
-  name: string;
-  folder?: string;
-  content: string;
-}
-
-const FILES: NtFile[] = [
-  {
-    id: "age",
-    name: "age.nt",
-    content: `# age.nt — the entry file for this ecosystem.
-# It imports every capability, then wires them onto one agent.
-
-import ./config.nt
-import ./sandboxes.nt
-import ./skills.nt
-import ./tools.nt
-import ./subagents/researcher.nt
-
-agent age
-  description: Estimates a person's most likely age from clues.
-  model: anthropic/claude-sonnet-5
-  thinking: high
-  sandbox: workspace
-  skills:
-    - estimation
-  tools:
-    - current_year
-    - fs_write
-  subagents:
-    - researcher
-  instructions: |
-    You estimate a person's most likely age from the clues provided.
-    Call current_year whenever a clue implies a birth year.
-    Delegate to the researcher to pin down the year of an event.
-    Follow the estimation checklist, then commit to one integer.
-  input:
-    clues:
-      type: string
-      description: Any details that hint at the person's age.
-  output:
-    age:
-      type: number
-      description: The single best age estimate.
-    reason:
-      type: string
-      description: A one-sentence justification.`,
-  },
-  {
-    id: "config",
-    name: "config.nt",
-    content: `# Project defaults and the language-model providers.
-
-config
-  target: node
-  entry: age
-  show_tool_calls: true
-  defaults:
-    model: anthropic/claude-sonnet-5
-    sandbox: workspace
-    thinking: medium
-    max_tokens: 8000
-  providers:
-    anthropic:
-      api: anthropic
-      api_key: env(ANTHROPIC_API_KEY)
-    ollama:
-      api: openai-completions
-      base_url: http://localhost:11434/v1
-      api_key: env(OLLAMA_API_KEY, ollama)`,
-  },
-  {
-    id: "tools",
-    name: "tools.nt",
-    content: `# A custom shell tool that runs in the agent's sandbox.
-
-tool current_year
-  description: Return the current four-digit calendar year.
-  type: shell
-  command: date +%Y
-  # An interactive Yes/No selector asks before every call; --yes pre-approves.
-  confirm: true`,
-  },
-  {
-    id: "skills",
-    name: "skills.nt",
-    content: `# A reusable checklist the agent loads for age estimation.
-
-skill estimation
-  description: A checklist for estimating a person's age.
-  instructions: |
-    When estimating an age:
-    1. Convert every clue to an approximate calendar year.
-    2. Anchor each year to a typical life stage.
-    3. Measure the span from those anchors to today.
-    4. Reconcile conflicts, then commit to one integer.`,
-  },
-  {
-    id: "sandboxes",
-    name: "sandboxes.nt",
-    content: `# The in-memory workspace the agent reads and writes.
-
-sandbox workspace
-  description: In-memory workspace for notes and commands.
-  type: virtual
-  cwd: /workspace`,
-  },
-  {
-    id: "researcher",
-    name: "researcher.nt",
-    folder: "subagents",
-    content: `# A specialist the age agent delegates date lookups to.
-
-subagent researcher
-  description: Pins down the calendar year of an event.
-  thinking: medium
-  instructions: |
-    Given a single event or milestone, respond with the
-    calendar year it occurred, or a tight range, and nothing else.`,
-  },
-];
-
-/* ---------------------------------------------------------------------------
-   Minimal .nt syntax highlighter — line-based, good enough for these files.
-   ------------------------------------------------------------------------- */
-
-type Seg = { t: string; c: string | null };
-
-const KEYWORDS = [
-  "import",
-  "config",
-  "provider",
-  "agent",
-  "subagent",
-  "sandbox",
-  "tool",
-  "skill",
-  "workflow",
-];
-
-/** Highlight the value after a `key:` (strings, numbers, env(), lists). */
-function pushValue(v: string, segs: Seg[]): void {
-  if (v === "") return;
-  const lead = v.match(/^\s*/)?.[0] ?? "";
-  if (lead) segs.push({ t: lead, c: null });
-  const val = v.slice(lead.length);
-  if (val === "") return;
-  if (val === "|") segs.push({ t: "|", c: "p" });
-  else if (/^\d+$/.test(val)) segs.push({ t: val, c: "num" });
-  else if (val.startsWith("env(")) segs.push({ t: val, c: "fn" });
-  else segs.push({ t: val, c: "s" });
-}
-
-/** Highlight a de-indented content fragment (keyword decl, key:value, list). */
-function pushContent(content: string, segs: Seg[]): void {
-  const fw = content.split(/\s/)[0];
-  if (KEYWORDS.includes(fw) && (content.length === fw.length || content[fw.length] === " ")) {
-    segs.push({ t: fw, c: "k" });
-    const after = content.slice(fw.length);
-    if (after) segs.push({ t: after, c: fw === "import" ? "s" : "n" });
-    return;
-  }
-  const kv = content.match(/^([A-Za-z0-9_-]+)(:)(.*)$/);
-  if (kv) {
-    segs.push({ t: kv[1], c: "key" });
-    segs.push({ t: ":", c: "p" });
-    pushValue(kv[3], segs);
-    return;
-  }
-  segs.push({ t: content, c: null });
-}
-
-/** Tokenize one line into styled segments. */
-function highlightLine(line: string): Seg[] {
-  const segs: Seg[] = [];
-  const indent = line.match(/^\s*/)?.[0] ?? "";
-  if (indent) segs.push({ t: indent, c: null });
-  let rest = line.slice(indent.length);
-  if (rest === "") return segs;
-  if (rest.startsWith("#")) {
-    segs.push({ t: rest, c: "c" });
-    return segs;
-  }
-  let comment: string | null = null;
-  const hi = rest.search(/\s#/);
-  if (hi !== -1) {
-    comment = rest.slice(hi);
-    rest = rest.slice(0, hi);
-  }
-  if (rest.startsWith("- ")) {
-    segs.push({ t: "- ", c: "p" });
-    pushContent(rest.slice(2), segs);
-  } else {
-    pushContent(rest, segs);
-  }
-  if (comment) segs.push({ t: comment, c: "c" });
-  return segs;
-}
-
-/** Tokenize a whole file, keeping block-scalar (`|`) bodies as plain text. */
-function tokenize(code: string): Seg[][] {
-  const lines = code.split("\n");
-  const out: Seg[][] = [];
-  let blockIndent: number | null = null;
-  for (const line of lines) {
-    const indent = (line.match(/^\s*/)?.[0] ?? "").length;
-    const trimmed = line.trim();
-    if (blockIndent !== null) {
-      if (trimmed === "") {
-        out.push([{ t: line, c: null }]);
-        continue;
-      }
-      if (indent > blockIndent) {
-        out.push([{ t: line, c: "blk" }]);
-        continue;
-      }
-      blockIndent = null;
-    }
-    out.push(highlightLine(line));
-    if (/:\s*\|\s*$/.test(line)) blockIndent = indent;
-  }
-  return out;
-}
-
-/* ---------------------------------------------------------------------------
-   Component
-   ------------------------------------------------------------------------- */
-
+/**
+ * Renders the code editor component from its documented props.
+ * @returns The self-advancing, keyboard-accessible NT source preview.
+ */
 export function CodeEditor() {
   const [active, setActive] = useState(0);
-  const file = FILES[active];
-  const lines = tokenize(file.content);
+  const file = PREVIEW_FILES[active];
+  const lines = tokenizePreview(file.content);
 
-  // Auto-advance through files; any click resets the timer via `active` dep.
   useEffect(() => {
-    const id = setTimeout(() => setActive((a) => (a + 1) % FILES.length), 5200);
+    const id = setTimeout(() => setActive((current) => (current + 1) % PREVIEW_FILES.length), 5200);
     return () => clearTimeout(id);
   }, [active]);
 
-  const rootFiles = FILES.filter((f) => !f.folder);
-  const folderFiles = FILES.filter((f) => f.folder);
+  const rootFiles = PREVIEW_FILES.filter((candidate) => !candidate.folder);
+  const folderFiles = PREVIEW_FILES.filter((candidate) => candidate.folder);
 
   return (
     <div className="nt-vscode nt-reveal" data-delay="2">
-      {/* Title bar */}
       <div className="nt-vscode-title">
         <span className="nt-vscode-lights">
           <i />
@@ -264,7 +43,6 @@ export function CodeEditor() {
       </div>
 
       <div className="nt-vscode-body">
-        {/* Activity bar */}
         <div className="nt-vscode-activity">
           <span className="on" aria-hidden>
             <svg viewBox="0 0 24 24" width="20" height="20">
@@ -292,40 +70,38 @@ export function CodeEditor() {
           </span>
         </div>
 
-        {/* Explorer */}
         <div className="nt-vscode-side">
           <div className="nt-vscode-sidehead">Explorer</div>
           <div className="nt-vscode-folder">
             <span className="chev">⌄</span>
             <FolderIcon size={15} /> example
           </div>
-          {rootFiles.map((f) => (
+          {rootFiles.map((candidate) => (
             <button
-              key={f.id}
-              className={`nt-vscode-file${f.id === file.id ? " on" : ""}`}
-              onClick={() => setActive(FILES.indexOf(f))}
+              key={candidate.id}
+              className={`nt-vscode-file${candidate.id === file.id ? " on" : ""}`}
+              onClick={() => setActive(PREVIEW_FILES.indexOf(candidate))}
             >
               <NtFileIcon size={15} />
-              {f.name}
+              {candidate.name}
             </button>
           ))}
           <div className="nt-vscode-folder sub">
             <span className="chev">⌄</span>
             <FolderIcon size={15} /> subagents
           </div>
-          {folderFiles.map((f) => (
+          {folderFiles.map((candidate) => (
             <button
-              key={f.id}
-              className={`nt-vscode-file sub${f.id === file.id ? " on" : ""}`}
-              onClick={() => setActive(FILES.indexOf(f))}
+              key={candidate.id}
+              className={`nt-vscode-file sub${candidate.id === file.id ? " on" : ""}`}
+              onClick={() => setActive(PREVIEW_FILES.indexOf(candidate))}
             >
               <NtFileIcon size={15} />
-              {f.name}
+              {candidate.name}
             </button>
           ))}
         </div>
 
-        {/* Editor */}
         <div className="nt-vscode-main">
           <div className="nt-vscode-tabs">
             <span className="nt-vscode-tab on">
@@ -334,21 +110,21 @@ export function CodeEditor() {
             </span>
           </div>
           <div className="nt-vscode-code" key={file.id}>
-            {lines.map((segs, i) => (
+            {lines.map((segments, lineIndex) => (
               <div
                 className="nt-ed-line"
-                key={i}
-                style={{ animationDelay: `${Math.min(i * 16, 520)}ms` }}
+                key={lineIndex}
+                style={{ animationDelay: `${Math.min(lineIndex * 16, 520)}ms` }}
               >
-                <span className="nt-ed-gutter">{i + 1}</span>
+                <span className="nt-ed-gutter">{lineIndex + 1}</span>
                 <span className="nt-ed-text">
-                  {segs.map((s, j) =>
-                    s.c ? (
-                      <span className={`t-${s.c}`} key={j}>
-                        {s.t}
+                  {segments.map((segment, segmentIndex) =>
+                    segment.c ? (
+                      <span className={`t-${segment.c}`} key={segmentIndex}>
+                        {segment.t}
                       </span>
                     ) : (
-                      <span key={j}>{s.t}</span>
+                      <span key={segmentIndex}>{segment.t}</span>
                     ),
                   )}
                 </span>

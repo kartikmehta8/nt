@@ -1,23 +1,21 @@
 /**
  * @file Assembles parsed blocks from every file into one validated `Project`.
  *
- * Applies the `config` block (defaults, the audit destination, and nested
- * providers), registers each declaration while rejecting duplicate names, then
- * runs cross-reference validation. Returns the project together with any
- * accumulated warnings.
+ * Applies the `config` block, registers agents, tools, MCP servers, providers,
+ * sandboxes, skills, and workflows while rejecting duplicate identities, then
+ * runs offline cross-reference validation. Remote MCP catalogs never enter the
+ * source-level project registry. The result includes every accumulated
+ * unknown-field and security warning.
  */
 
+import * as nodePath from "node:path";
 import { defaultAuditConfig, parseAuditConfig } from "#audit/config";
 import { NtError } from "#errors";
 import { isMap, optBool, optNum, optStr, parseThinking, warnUnknown } from "#schema/coerce";
-import {
-  parseAgent,
-  parseProvider,
-  parseSandbox,
-  parseSkill,
-  parseTool,
-  parseWorkflow,
-} from "#schema/declarations";
+import { parseAgent, parseSandbox, parseSkill, parseTool } from "#schema/declarations";
+import { parseMcpServer } from "#schema/mcp";
+import { parseProvider } from "#schema/provider";
+import { parseWorkflow } from "#schema/workflow-declaration";
 import { validateRefs } from "#schema/validate";
 import type { Block, ConfigDef, Location, NtValue, Project } from "#types";
 
@@ -32,6 +30,7 @@ export interface BuildResult {
 }
 
 /**
+ * Returns a fresh project with default configuration and empty registries.
  * @returns A fresh project with default configuration and empty registries.
  */
 function emptyProject(files: string[]): Project {
@@ -49,6 +48,7 @@ function emptyProject(files: string[]): Project {
     subagents: new Map(),
     sandboxes: new Map(),
     tools: new Map(),
+    mcpServers: new Map(),
     skills: new Map(),
     workflows: new Map(),
     files,
@@ -56,6 +56,7 @@ function emptyProject(files: string[]): Project {
 }
 
 /**
+ * Inserts a uniquely named declaration and reports duplicate source locations.
  * @param map The registry to insert into.
  * @param def The definition to register.
  * @param what A label used in the duplicate-name error.
@@ -70,6 +71,7 @@ function define<T extends { name: string; loc: Location }>(
 }
 
 /**
+ * Merges one validated config block into the project's effective defaults.
  * @param config The mutable config being populated.
  * @param body The `config` block body.
  * @param loc Source location for error messages.
@@ -120,11 +122,17 @@ function applyConfig(
 }
 
 /**
+ * Assembles parsed files into a typed, reference-checked project without runtime I/O.
  * @param fileBlocks Parsed blocks grouped by originating file.
+ * @param projectRoot Project root used by project-scoped security decisions.
  * @returns The assembled, reference-checked project and any accumulated warnings.
  */
-export function buildProject(fileBlocks: FileBlocks[]): BuildResult {
+export function buildProject(
+  fileBlocks: FileBlocks[],
+  projectRoot = nodePath.dirname(nodePath.resolve(fileBlocks[0]?.file ?? ".")),
+): BuildResult {
   const warnings: string[] = [];
+  const normalizedRoot = nodePath.resolve(projectRoot);
   const project = emptyProject(fileBlocks.map((f) => f.file));
 
   for (const { blocks } of fileBlocks)
@@ -141,6 +149,13 @@ export function buildProject(fileBlocks: FileBlocks[]): BuildResult {
           break;
         case "tool":
           define(project.tools, parseTool(b.name, b.body, b.loc, warnings), "tool");
+          break;
+        case "mcp":
+          define(
+            project.mcpServers,
+            parseMcpServer(b.name, b.body, b.loc, warnings, normalizedRoot),
+            "MCP server",
+          );
           break;
         case "skill":
           define(project.skills, parseSkill(b.name, b.body, b.loc, warnings), "skill");

@@ -2,23 +2,17 @@
  * @file The agentic tool-use loop, shared by one-shot runs and chat turns.
  *
  * `driveConversation` runs the request → execute-tools → repeat loop over a
- * messages array, dispatching built-in, custom, and delegation tools (subagents
- * run as nested sessions) and appending every call to the audit log.
- * `runSession` wraps a single input into one complete run; the chat layer reuses
- * `driveConversation` across turns. The per-run state and prompt building live in
- * `runtime.ts`.
+ * messages array, resolves only the exact prepared dispatch entry, and appends
+ * every attempted call to the audit log. Built-in/custom/MCP permission and
+ * execution live in `tool-dispatch.ts`; subagents recurse through this loop.
+ * `runSession` wraps one input, while chat reuses the conversation across turns.
  */
 
 import { auditToolKind } from "#audit/log";
-import {
-  DELEGATE_PREFIX,
-  isBuiltinTool,
-  MAX_AGENT_STEPS,
-  MAX_DELEGATION_DEPTH,
-  type BuiltinToolName,
-} from "#constants";
+import { collectSecrets, createRedactor } from "#audit/redact";
+import { DELEGATE_PREFIX, MAX_AGENT_STEPS, MAX_DELEGATION_DEPTH } from "#constants";
 import { NtError } from "#errors";
-import { runCustomTool, type ToolOutcome } from "#custom-tools";
+import type { ToolOutcome } from "#custom-tools";
 import type { ContentBlock, LlmMessage } from "#provider";
 import {
   buildRuntime,
@@ -29,9 +23,11 @@ import {
   type TurnResult,
 } from "#runtime";
 import type { Sandbox } from "#sandbox";
+import { gatedDispatch } from "#tool-dispatch";
 import type { AgentDef, RunResult, TokenUsage } from "#types";
 
 /**
+ * Returns the assistant's final text, step count, and token usage for the turn.
  * @param context The shared run context.
  * @param runtime The prepared agent runtime.
  * @param sandbox The workspace the agent operates in.
@@ -76,6 +72,7 @@ export async function driveConversation(
 }
 
 /**
+ * Drives one bounded agentic model/tool loop and aggregates output and token usage.
  * @param context The shared run context.
  * @param agent The agent or subagent to run once.
  * @param input The run input, used to build the first user message.
@@ -92,7 +89,7 @@ export async function runSession(
 ): Promise<RunResult> {
   if (depth > MAX_DELEGATION_DEPTH)
     throw new NtError("subagent delegation too deep (possible cycle)", agent.loc);
-  const runtime = buildRuntime(context, agent);
+  const runtime = await buildRuntime(context, agent);
   const messages: LlmMessage[] = [{ role: "user", content: buildUserMessage(agent, input) }];
   const turn = await driveConversation(context, runtime, sandbox, messages, depth);
   return { ...turn, output: parseStructuredOutput(runtime.outputSchema, turn.text) };
@@ -115,9 +112,11 @@ async function runToolCalls(
   const results: unknown[] = [];
   for (const block of content) {
     if (block.type !== "tool_use") continue;
-    const name = block.name!;
+    const name = block.name;
+    if (!name) continue;
     const input = block.input ?? {};
-    context.log(`  ${"  ".repeat(depth)}· ${runtime.name} → ${name}(${JSON.stringify(input)})`);
+    const safeInput = createRedactor(collectSecrets(context.project)).input(input).input;
+    context.log(`  ${"  ".repeat(depth)}· ${runtime.name} → ${name}(${JSON.stringify(safeInput)})`);
     context.onStep?.(
       name.startsWith(DELEGATE_PREFIX)
         ? {
@@ -129,17 +128,31 @@ async function runToolCalls(
         : { kind: "tool", agent: runtime.name, detail: name, depth },
     );
     const startedAt = Date.now();
-    const outcome = await gatedDispatch(context, runtime, sandbox, name, input, depth);
+    const entry = runtime.dispatch.get(name);
+    const outcome = await gatedDispatch(
+      context,
+      sandbox,
+      name,
+      entry,
+      input,
+      depth,
+      (subagent, prompt) => delegate(context, subagent, prompt, sandbox, depth),
+    );
     context.audit?.record({
       run: context.runId,
       agent: runtime.name,
       depth,
       tool: name,
-      kind: auditToolKind(context.project, name),
+      kind: entry?.kind === "mcp" ? "mcp" : auditToolKind(context.project, name),
       input,
       ok: !outcome.isError,
       durationMs: Date.now() - startedAt,
-      output: outcome.content,
+      output: outcome.auditSummary ?? outcome.content,
+      server: entry?.kind === "mcp" ? entry.tool.server.name : undefined,
+      remoteTool: entry?.kind === "mcp" ? entry.tool.catalog.info.remoteName : undefined,
+      transport: entry?.kind === "mcp" ? entry.tool.server.transport : undefined,
+      approval: entry?.kind === "mcp" ? entry.tool.catalog.info.approval : undefined,
+      protocolVersion: entry?.kind === "mcp" ? entry.tool.protocolVersion : undefined,
     });
     results.push({
       type: "tool_result",
@@ -152,84 +165,7 @@ async function runToolCalls(
 }
 
 /**
- * Applies the availability check and the human-in-the-loop gate before a tool
- * runs. A tool declared with `confirm: true` executes only after the confirm
- * callback approves it; without a callback (a non-interactive run or an
- * embedder that wired none), the call is denied rather than silently run.
- *
- * @returns The tool outcome — the execution result, or the refusal.
- */
-async function gatedDispatch(
-  context: RunContext,
-  runtime: AgentRuntime,
-  sandbox: Sandbox,
-  name: string,
-  input: Record<string, unknown>,
-  depth: number,
-): Promise<ToolOutcome> {
-  if (!runtime.allowedTools.has(name))
-    return { content: `tool '${name}' is not available to this agent`, isError: true };
-  if (context.project.tools.get(name)?.confirm) {
-    if (!context.confirm)
-      return {
-        content: `tool '${name}' requires confirmation, and this run has no way to ask — re-run interactively or pass --yes`,
-        isError: true,
-      };
-    const approved = await context.confirm({ agent: runtime.name, tool: name, input, depth });
-    if (!approved)
-      return { content: `the user denied permission to run tool '${name}'`, isError: true };
-  }
-  return dispatchTool(context, sandbox, name, input, depth);
-}
-
-const BUILTIN_HANDLERS: Record<
-  BuiltinToolName,
-  (sandbox: Sandbox, input: Record<string, unknown>) => ToolOutcome
-> = {
-  fs_read: (sandbox, input) => ({ content: sandbox.readFile(String(input.path)), isError: false }),
-  fs_write: (sandbox, input) => {
-    sandbox.writeFile(String(input.path), String(input.content ?? ""));
-    return { content: `wrote ${input.path}`, isError: false };
-  },
-  fs_list: (sandbox) => ({ content: sandbox.listFiles().join("\n") || "(empty)", isError: false }),
-  bash: (sandbox, input) => {
-    const r = sandbox.exec(String(input.command));
-    return {
-      content: `exit ${r.code}\n${r.stdout}${r.stderr ? "\n[stderr]\n" + r.stderr : ""}`,
-      isError: r.code !== 0,
-    };
-  },
-};
-
-/**
- * @returns The outcome of a single tool invocation.
- */
-async function dispatchTool(
-  context: RunContext,
-  sandbox: Sandbox,
-  name: string,
-  input: Record<string, unknown>,
-  depth: number,
-): Promise<ToolOutcome> {
-  try {
-    if (isBuiltinTool(name)) return BUILTIN_HANDLERS[name](sandbox, input);
-    if (name.startsWith(DELEGATE_PREFIX))
-      return await delegate(
-        context,
-        name.slice(DELEGATE_PREFIX.length),
-        String(input.prompt ?? ""),
-        sandbox,
-        depth,
-      );
-    const custom = context.project.tools.get(name);
-    if (custom) return await runCustomTool(custom, sandbox, input);
-    return { content: `unknown tool '${name}'`, isError: true };
-  } catch (e) {
-    return { content: String((e as Error).message), isError: true };
-  }
-}
-
-/**
+ * Returns the subagent's response as a tool outcome, sharing the parent sandbox.
  * @returns The subagent's response as a tool outcome, sharing the parent sandbox.
  */
 async function delegate(

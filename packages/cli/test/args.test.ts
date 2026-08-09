@@ -1,7 +1,8 @@
 /**
  * @file Argument-parsing tests: flags requiring values, unknown-flag
  * rejection, the `--allow-outside-imports` toggle, and the `audit` command's
- * `--tail` / `--json` options.
+ * `--tail` / `--json` options. The suite also checks entry-file resolution and
+ * all MCP command flags so invalid invocations fail at the CLI boundary.
  */
 
 import assert from "node:assert/strict";
@@ -83,6 +84,22 @@ test("tail is unset and json is false by default", () => {
   const args = parseArgs(["audit"]);
   assert.equal(args.tail, undefined);
   assert.equal(args.json, false);
+});
+
+test("MCP command flags parse without changing existing global options", () => {
+  const args = parseArgs([
+    "mcp",
+    "trust",
+    "github",
+    "--fingerprint",
+    "sha256:abc",
+    "--non-interactive",
+    "--all",
+  ]);
+  assert.deepEqual(args.positional, ["mcp", "trust", "github"]);
+  assert.equal(args.fingerprint, "sha256:abc");
+  assert.equal(args.nonInteractive, true);
+  assert.equal(args.all, true);
 });
 
 test("resolveEntry returns the path when it exists", () => {

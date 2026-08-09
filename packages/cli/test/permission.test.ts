@@ -133,6 +133,23 @@ test("describeRequest names the agent, tool, and input, truncating long input", 
   assert.match(long, /…/);
 });
 
+test("MCP approval descriptions use the exact reference and redact secret-shaped input", () => {
+  const description = describeRequest({
+    agent: "researcher",
+    tool: "mcp__github__create_issue",
+    input: { title: "hello", access_token: "do-not-print" },
+    depth: 0,
+    server: "github",
+    remoteTool: "create_issue",
+    approvalPolicy: "once",
+    serverOrigin: "npx @example/server@1.0.0",
+  });
+  assert.match(description, /github\.create_issue/);
+  assert.match(description, /cached for this engine run/);
+  assert.match(description, /\[redacted\]/);
+  assert.doesNotMatch(description, /do-not-print/);
+});
+
 test("--yes pre-approves and a non-interactive terminal denies, both without a prompt", async () => {
   const io = fakeIO();
   assert.equal(await makeConfirm({ yes: true, interactive: true, io })(REQUEST), true);

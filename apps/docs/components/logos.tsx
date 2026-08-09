@@ -8,7 +8,12 @@ interface IconProps {
   className?: string;
 }
 
-/** Official Visual Studio Code mark (brand blue). */
+/**
+ * Renders the vscode logo component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The official blue Visual Studio Code mark.
+ */
 export function VSCodeLogo({ size = 28, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -20,7 +25,12 @@ export function VSCodeLogo({ size = 28, className }: IconProps) {
   );
 }
 
-/** Official npm mark (brand red square). */
+/**
+ * Renders the npm logo component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The official red npm mark.
+ */
 export function NpmLogo({ size = 28, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -32,7 +42,12 @@ export function NpmLogo({ size = 28, className }: IconProps) {
   );
 }
 
-/** A terminal / CLI glyph in ink. */
+/**
+ * Renders the terminal icon component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The dark terminal and command-prompt glyph.
+ */
 export function TerminalIcon({ size = 28, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -56,7 +71,12 @@ export function TerminalIcon({ size = 28, className }: IconProps) {
   );
 }
 
-/** A documentation / book glyph in ink. */
+/**
+ * Renders the book icon component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The monochrome documentation-book glyph.
+ */
 export function BookIcon({ size = 28, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -69,7 +89,12 @@ export function BookIcon({ size = 28, className }: IconProps) {
   );
 }
 
-/** Official GitHub mark (ink). */
+/**
+ * Renders the git hub logo component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The official monochrome GitHub mark.
+ */
 export function GitHubLogo({ size = 28, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -81,7 +106,12 @@ export function GitHubLogo({ size = 28, className }: IconProps) {
   );
 }
 
-/** Cursor mark (isometric cube). */
+/**
+ * Renders the cursor logo component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The shaded isometric Cursor mark.
+ */
 export function CursorLogo({ size = 28, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -92,9 +122,12 @@ export function CursorLogo({ size = 28, className }: IconProps) {
   );
 }
 
-/* --- Feature icons (monochrome line icons, inherit currentColor) --- */
-
-/** A document with angle brackets — authoring in a declarative format. */
+/**
+ * Renders the file code icon component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The declarative source-file feature icon.
+ */
 export function FileCodeIcon({ size = 22, className }: IconProps) {
   return (
     <svg
@@ -116,7 +149,12 @@ export function FileCodeIcon({ size = 22, className }: IconProps) {
   );
 }
 
-/** A terminal prompt — a single command to run everything. */
+/**
+ * Renders the command icon component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The single-command terminal feature icon.
+ */
 export function CommandIcon({ size = 22, className }: IconProps) {
   return (
     <svg
@@ -137,7 +175,12 @@ export function CommandIcon({ size = 22, className }: IconProps) {
   );
 }
 
-/** A sparkle — building agents as easily as writing plain English. */
+/**
+ * Renders the sparkle icon component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The plain-language authoring sparkle icon.
+ */
 export function SparkleIcon({ size = 22, className }: IconProps) {
   return (
     <svg
@@ -158,9 +201,12 @@ export function SparkleIcon({ size = 22, className }: IconProps) {
   );
 }
 
-/* --- Material-style icons for the VS Code file explorer --- */
-
-/** Material-style icon for a `.nt` source file (purple document). */
+/**
+ * Renders the nt file icon component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The purple Material-style icon for an `.nt` source file.
+ */
 export function NtFileIcon({ size = 16, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -174,7 +220,12 @@ export function NtFileIcon({ size = 16, className }: IconProps) {
   );
 }
 
-/** Material-style open folder icon (blue). */
+/**
+ * Renders the folder icon component from its documented props.
+ * @param size Rendered square size in CSS pixels.
+ * @param className Optional styling hook supplied by the caller.
+ * @returns The blue Material-style open-folder icon.
+ */
 export function FolderIcon({ size = 16, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>

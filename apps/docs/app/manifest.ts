@@ -1,6 +1,16 @@
+/**
+ * @file Installable web-app manifest for the NT documentation site.
+ *
+ * Supplies stable product identity, theme colors, launch URL, and icon metadata
+ * to browsers and mobile install surfaces.
+ */
+
 import type { MetadataRoute } from "next";
 
-/** The web app manifest — name, colors, and icons for installs and mobile. */
+/**
+ * Returns browser-install identity, launch, color, and icon metadata.
+ * @returns Browser-install identity, launch, color, and icon metadata.
+ */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "NT — a language for agent ecosystems",

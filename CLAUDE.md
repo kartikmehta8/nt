@@ -2,9 +2,9 @@
 
 NT — a declarative `.nt` language and runtime engine for spinning up ecosystems
 of AI agents, subagents, sandboxes, tools, skills and workflows. GitHub:
-`kartikmehta8/nt`. This is a pnpm monorepo with **no build step** — Node runs the
-TypeScript directly (Node ≥ 22.18 strips types natively; pnpm workspace symlinks
-resolve to the real `packages/` path, so stripping applies across packages too).
+`kartikmehta8/nt`. This is a pnpm monorepo whose development launcher runs
+TypeScript directly (Node ≥ 22.18 strips types natively). Type checking and npm
+packaging compile the engine and CLI to `dist/` with `tsc`.
 
 - `packages/engine` — the language + runtime, as a library (`@age.nt/engine`)
 - `packages/cli` — the `nt` command (`@age.nt/nt`, depends on the engine)
@@ -12,7 +12,9 @@ resolve to the real `packages/` path, so stripping applies across packages too).
 - `apps/docs` — the documentation site: Fumadocs + Next.js 15 · port 3000
 - `example/` — the canonical wired `age` ecosystem, split by domain
 
-The engine has **zero runtime dependencies** and talks to the model over `fetch`.
+The engine has three exact-pinned runtime dependencies: the official
+`@modelcontextprotocol/client`, Ajv for JSON Schema validation, and Undici for
+guarded network dispatch. It talks to model providers over the platform `fetch`.
 
 ## Canonical naming and branding
 
@@ -29,7 +31,7 @@ The engine has **zero runtime dependencies** and talks to the model over `fetch`
 ## Commands
 
 ```bash
-pnpm install         # links @age.nt/engine into the nt CLI (no build step)
+pnpm install         # installs pinned dependencies and links the workspaces
 
 pnpm nt:setup        # scaffold the full starter template into .nt-demo/ (gitignored)
 pnpm nt:validate     # parse + type-check every .nt file (root scripts target example/age.nt)
@@ -42,7 +44,8 @@ pnpm nt:chat         # chat with the example agent
 pnpm docs:dev        # run the docs site (http://localhost:3000); docs:build / docs:start
 pnpm typecheck       # tsc per package (engine + cli)
 pnpm test            # node --test over packages/*/test/*.test.ts
-pnpm lint            # eslint (root flat config governs everything)
+pnpm lint            # eslint plus file-size, @file, and public-JSDoc checks
+pnpm check:conventions # run the repository convention checker directly
 pnpm format          # prettier --write (format:check to verify)
 ```
 
@@ -54,9 +57,9 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 
 ## Code rules
 
-1. **~250 lines max per file** (a convention, not an eslint rule). If a file
-   won't fit, split it by domain — see `packages/engine/src/parse/` and
-   `schema/`. Never grow a file past readability.
+1. **250 lines max per hand-authored code file.** If a file won't fit, split it
+   by domain — see `packages/engine/src/parse/` and `schema/`. The executable
+   convention check excludes generated/build output and enforces the limit.
 2. **JSDoc-only comments.** Every file opens with a `/** @file … */` block; every
    exported function gets a JSDoc with `@param`/`@returns`. No types in JSDoc —
    TypeScript owns types. No `//` comments, no same-line comments. Name logic to
@@ -69,7 +72,8 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 4. **Inline type imports:** `import { foo, type Foo } from "…"`.
 5. **No `console.log` in engine code** (`console.warn`/`error` allowed) —
    enforced by eslint. The **CLI is exempt** (its output is the point). The VS
-   Code extension is plain CommonJS and is excluded from the root config.
+   Code extension is plain CommonJS with explicit lint globals and is checked
+   by both ESLint and the repository convention gate.
 6. **Prettier owns all formatting** (`printWidth: 100`, double quotes,
    semicolons, `trailingComma: all`). Never hand-align or fight it.
 
@@ -77,10 +81,9 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 
 ### Engine (packages/engine)
 
-- **Public surface is `src/index.ts` only** — `Engine`, `loadProject`,
-  `discoverNtFiles`, `ChatSession`, `scaffoldProject`, `NtError`, and the typed
-  `Project` / definition shapes. Everything else stays private behind `#` subpath
-  imports.
+- **Public surface is `src/index.ts` only** — core engine/load/chat/scaffold and
+  audit APIs, `NtError` / `McpError`, and their typed project and MCP result
+  shapes. Everything else stays private behind `#` subpath imports.
 - **Four phases, in order:** load (discover `.nt`, parse to blocks in `parse/`)
   → build (`schema/`: coerce → declarations → build → validate into a typed
   `Project`, validating references and collecting warnings) → bring up
@@ -101,11 +104,13 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 - **`audit/` writes the tool-call log**: `config.ts` resolves `config.audit`
   (`off` or a folder) into `AuditConfig`, `redact.ts` strips credentials, and
   `log.ts` appends one JSONL line per tool call plus the reader `nt audit` uses.
+- **`mcp/` is the tools-only MCP client host**: declarations remain offline,
+  `manager.ts` owns lazy shared connections, and `Engine.close()` owns cleanup.
   The session loop records every dispatch; a failing write degrades to one
   warning and never breaks a run.
 - **Errors are `NtError(message, loc)`** with a source `Location` attached by the
-  parser/loader. One parser per block kind in `schema/declarations.ts`; unknown
-  fields are reported via `warnUnknown`, never silently accepted.
+  parser/loader. Schema parsers are split by domain when needed to stay focused;
+  unknown fields are reported via `warnUnknown`, never silently accepted.
 
 ### Security (the trust rules)
 
@@ -131,10 +136,10 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 
 ### CLI (packages/cli)
 
-- Thin layer over `@age.nt/engine`: `args.ts` (flags + help), `commands.ts`
-  (`validate` / `list` / `graph` / `up` / `run` / `chat`), `audit.ts` (`audit`),
-  `setup.ts` (`setup`), `format.ts` (colored output), `main.ts`; `bin/nt.mjs` is
-  the launcher.
+- Thin layer over `@age.nt/engine`: `args.ts` (flags + help), `inspect.ts`
+  (offline validate/list/graph), `commands.ts` (up/run/chat), `mcp/` (live MCP
+  operations), `audit.ts`, `setup.ts`, lifecycle/output helpers, and `main.ts`;
+  `bin/nt.mjs` is the launcher.
 - **Defaults to `./age.nt` in the current directory**; `--file` / `--dir`
   override. `up` / `run` / `chat` call the model (need `ANTHROPIC_API_KEY`);
   `setup` / `validate` / `list` / `graph` / `audit` are offline.
@@ -173,8 +178,9 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 
 - `pnpm test` runs `node --test` over `packages/engine/test/*.test.ts` and
   `packages/cli/test/*.test.ts`.
-- Tests must not hit the network. The engine reaches the model over `fetch`, so
-  keep real model calls out of the suite; use fixtures or fakes.
+- Tests must not use the public network. The engine reaches models over `fetch`,
+  so keep real provider calls out of the suite; isolated loopback servers are
+  permitted for transport integration tests and must be closed deterministically.
 
 ## Git
 

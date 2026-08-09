@@ -2,10 +2,10 @@
  * @file Cross-reference validation for a fully assembled project.
  *
  * Verifies every agent and subagent references known tools (or built-ins),
- * subagents, skills, and sandboxes; that workflow steps name known agents and
- * skills; that each model uses a built-in or declared provider; and that
- * agents needing tool calls or structured output do not target an
- * `openai-completions` provider, where the engine silently supports neither.
+ * selected MCP tools, subagents, skills, and sandboxes; that workflow steps
+ * name known agents and skills; that each model uses a built-in or declared
+ * provider; and that agents needing tool calls or structured output do not
+ * target `openai-completions`, where the engine supports neither capability.
  */
 
 import { BUILTIN_TOOL_NAMES } from "#constants";
@@ -17,7 +17,9 @@ const BUILTIN_PROVIDERS = new Set(["anthropic", "openai"]);
 const INLINE_SANDBOXES = new Set(["virtual", "local"]);
 
 /**
+ * Validates refs and reports any contract violation.
  * @param project The assembled project whose references should be checked.
+ * @returns Nothing; the first invalid reference throws an `NtError`.
  */
 export function validateRefs(project: Project): void {
   for (const agent of project.agents.values()) validateAgent(agent, project);
@@ -37,16 +39,46 @@ export function validateRefs(project: Project): void {
 }
 
 /**
+ * Validates agent and reports any contract violation.
  * @param agent The agent or subagent to validate.
  * @param project The project it belongs to.
  */
 function validateAgent(agent: AgentDef, project: Project): void {
-  for (const tool of agent.tools)
+  for (const tool of agent.tools) {
+    if (BUILTINS.has(tool) || project.tools.has(tool)) continue;
+    const dot = tool.indexOf(".");
+    if (dot > 0) {
+      const serverName = tool.slice(0, dot);
+      const remoteName = tool.slice(dot + 1);
+      const server = project.mcpServers.get(serverName);
+      if (!server)
+        throw new NtError(
+          `${agent.kind} '${agent.name}' references unknown MCP server '${serverName}'`,
+          agent.loc,
+        );
+      if (!remoteName)
+        throw new NtError(
+          `${agent.kind} '${agent.name}' has an invalid MCP tool reference '${tool}'`,
+          agent.loc,
+        );
+      if (remoteName === "*" && !server.tools.has("*"))
+        throw new NtError(
+          `${agent.kind} '${agent.name}' uses '${tool}', but mcp ${serverName} does not select '*'`,
+          agent.loc,
+        );
+      if (remoteName !== "*" && !server.tools.has(remoteName) && !server.tools.has("*"))
+        throw new NtError(
+          `${agent.kind} '${agent.name}' references MCP tool '${tool}' that is not selected by mcp ${serverName}`,
+          agent.loc,
+        );
+      continue;
+    }
     if (!BUILTINS.has(tool) && !project.tools.has(tool))
       throw new NtError(
         `${agent.kind} '${agent.name}' references unknown tool '${tool}'`,
         agent.loc,
       );
+  }
   for (const sub of agent.subagents)
     if (!project.subagents.has(sub))
       throw new NtError(
@@ -76,6 +108,7 @@ function validateAgent(agent: AgentDef, project: Project): void {
 }
 
 /**
+ * Validates provider capabilities and reports any contract violation.
  * @param agent The agent whose declared capabilities must be supported.
  * @param model The resolved `provider/model-id` string.
  * @param project The project, used to resolve the provider's API kind.
@@ -99,6 +132,7 @@ function checkProviderCapabilities(agent: AgentDef, model: string, project: Proj
 }
 
 /**
+ * Validates workflow and reports any contract violation.
  * @param workflow The workflow to validate.
  * @param project The project it belongs to.
  */
@@ -132,6 +166,7 @@ function validateWorkflow(
 }
 
 /**
+ * Validates model and reports any contract violation.
  * @param model A `provider/model-id` string.
  * @param loc Source location for error messages.
  * @param project The project, used to check declared providers.

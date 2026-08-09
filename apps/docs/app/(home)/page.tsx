@@ -1,3 +1,11 @@
+/**
+ * @file Public landing page for the NT language and toolchain.
+ *
+ * Presents the product value, installation entry points, editor preview, and
+ * documentation call to action using static React content. Runtime behavior is
+ * confined to the isolated code-preview component.
+ */
+
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CodeEditor } from "./code-editor";
@@ -15,14 +23,14 @@ import {
 export const metadata: Metadata = {
   title: "NT — a language for agent ecosystems",
   description:
-    "Describe your models, agents, subagents, sandboxes, tools, skills and workflows in one clean .nt file. One command brings the whole ecosystem up.",
+    "Describe models, agents, MCP servers, sandboxes, tools, skills, and workflows in one clean .nt file. One command brings the whole ecosystem up.",
 };
 
 const FEATURES = [
   {
     icon: <FileCodeIcon />,
     title: "Write agents, don't wire them",
-    body: "Declare agents, tools, sandboxes and workflows in a clean, YAML-like format. No boilerplate, no glue code.",
+    body: "Declare agents, MCP servers, tools, sandboxes, and workflows in a clean, YAML-like format. No boilerplate, no glue code.",
   },
   {
     icon: <CommandIcon />,
@@ -36,10 +44,13 @@ const FEATURES = [
   },
 ];
 
+/**
+ * Renders the home page component from its documented props.
+ * @returns The static NT marketing landing page and its primary navigation paths.
+ */
 export default function HomePage() {
   return (
     <main className="nt-home">
-      {/* ---- Hero: centered copy above a full-width editor ---- */}
       <section className="nt-hero nt-section">
         <div className="nt-grid-overlay" aria-hidden />
 
@@ -49,7 +60,7 @@ export default function HomePage() {
           </h1>
 
           <p className="nt-lead nt-reveal" data-delay="2">
-            Describe your models, agents, subagents, sandboxes, tools, skills and workflows in one
+            Describe models, agents, MCP servers, sandboxes, tools, skills, and workflows in one
             clean <code>.nt</code> file. One command brings it all up.
           </p>
 
@@ -146,14 +157,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---- Editor showcase ---- */}
       <section className="nt-section" style={{ marginTop: "clamp(3rem,7vw,5rem)" }}>
         <div className="nt-hero-editor">
           <CodeEditor />
         </div>
       </section>
 
-      {/* ---- Minimal features ---- */}
       <section className="nt-section" style={{ marginTop: "clamp(4rem,9vw,6.5rem)" }}>
         <div className="nt-features">
           {FEATURES.map((f, i) => (
@@ -166,7 +175,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---- Closing: terminal + a link to the quickstart ---- */}
       <section className="nt-section nt-closing">
         <div className="nt-term nt-reveal" aria-hidden>
           <div className="nt-term-bar">
@@ -214,7 +222,6 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* ---- Footer ---- */}
       <footer className="nt-footer">
         <p>
           NT is a declarative <code>.nt</code> language and engine for agent ecosystems. Built by{" "}

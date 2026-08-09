@@ -16,6 +16,7 @@ import { isEnvRef } from "#schema/coerce";
 import type { AuditConfig, Location, NtValue } from "#types";
 
 /**
+ * Resolves audit dir from the available configuration.
  * @param dir A folder that may start with `~` for the home directory.
  * @param base The directory a relative folder resolves against.
  * @returns The folder as an absolute path.
@@ -27,6 +28,7 @@ export function resolveAuditDir(dir: string, base: string): string {
 }
 
 /**
+ * Returns the audit configuration used when `config.audit` is absent: on, in the default folder.
  * @returns The audit configuration used when `config.audit` is absent: on, in the default folder.
  */
 export function defaultAuditConfig(): AuditConfig {
@@ -34,6 +36,7 @@ export function defaultAuditConfig(): AuditConfig {
 }
 
 /**
+ * Returns the directory a relative audit folder resolves against.
  * @param loc The location of the `config` block, whose file anchors relative folders.
  * @returns The directory a relative audit folder resolves against.
  */
@@ -42,6 +45,7 @@ function baseDirOf(loc: Location | null): string {
 }
 
 /**
+ * Parses audit config into its validated internal representation.
  * @param value The raw `config.audit` value.
  * @param loc Source location for error messages and relative-folder resolution.
  * @returns The resolved audit configuration.
