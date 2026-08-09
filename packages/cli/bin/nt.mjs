@@ -8,7 +8,7 @@
  * Published installs always enter through this compiled artifact boundary.
  */
 
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
 const MIN_NODE_MAJOR = 22;
@@ -24,7 +24,7 @@ if (major < MIN_NODE_MAJOR || (major === MIN_NODE_MAJOR && minor < MIN_NODE_MINO
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-import(join(here, "..", "dist", "main.js"))
+import(pathToFileURL(join(here, "..", "dist", "main.js")).href)
   .then((m) => m.main(process.argv.slice(2)))
   .catch((err) => {
     console.error(err?.stack || String(err));
