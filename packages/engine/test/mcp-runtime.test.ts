@@ -30,7 +30,8 @@ const temporary: string[] = [];
 afterEach(() => {
   while (temporary.length) {
     const target = temporary.pop();
-    if (target) fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    if (target)
+      fs.rmSync(target, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   }
   delete process.env.ALLOWED_MCP_TEST;
   delete process.env.UNRELATED_HOST_SECRET;
