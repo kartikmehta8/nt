@@ -6,10 +6,24 @@
   "license": "MIT",
   "author": "Kartik Mehta <kartikmehta202@gmail.com>",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "imports": {
-    "#*": "./src/*.ts"
+    "#*": {
+      "development": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prepack": "pnpm run build",
+    "test": "node --conditions=development --test \"test/*.test.ts\""
   },
   "keywords": [
     "nt",
@@ -32,7 +46,7 @@
     "directory": "packages/engine"
   },
   "files": [
-    "src",
+    "dist",
     "README.md",
     "LICENSE"
   ],

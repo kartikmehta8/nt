@@ -14,7 +14,7 @@ export default tseslint.config(
     ignores: [
       "node_modules/**",
       "**/node_modules/**",
-      "dist/**",
+      "**/dist/**",
       "packages/vscode-nt/**",
       "**/.next/**",
       "**/.source/**",

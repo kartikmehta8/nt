@@ -9,7 +9,17 @@
     "nt": "./bin/nt.mjs"
   },
   "imports": {
-    "#*": "./src/*.ts"
+    "#*": {
+      "development": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prepack": "pnpm --filter @age.nt/engine build && pnpm run build",
+    "test": "node --conditions=development --test \"test/*.test.ts\""
   },
   "keywords": [
     "nt",
@@ -32,7 +42,7 @@
   },
   "files": [
     "bin",
-    "src",
+    "dist",
     "README.md",
     "LICENSE"
   ],

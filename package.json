@@ -20,13 +20,14 @@
     "docs:dev": "pnpm --filter @age.nt/docs dev",
     "docs:build": "pnpm --filter @age.nt/docs build",
     "docs:start": "pnpm --filter @age.nt/docs start",
+    "build": "pnpm --filter @age.nt/engine build && pnpm --filter @age.nt/nt build",
     "format": "prettier --write .",
-    "test": "node --test \"packages/engine/test/*.test.ts\" \"packages/cli/test/*.test.ts\"",
-    "typecheck": "tsc -p packages/engine/tsconfig.json && tsc -p packages/cli/tsconfig.json",
+    "test": "node --conditions=development --test \"packages/engine/test/*.test.ts\" \"packages/cli/test/*.test.ts\" && node scripts/test-packed-cli.mjs",
+    "typecheck": "pnpm build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "pnpm build && husky"
   },
   "lint-staged": {
     "*.{ts,mts,mjs,js}": [

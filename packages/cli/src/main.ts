@@ -4,7 +4,7 @@
  * `main` routes the first positional argument to the matching command handler
  * (`setup`, `validate`, `list`, `graph`, `up`, `run`, `chat`, `audit`),
  * renders `NtError`s as `✗ file:line: message`, and sets the process exit code.
- * Invoked by `bin/nt.mjs` and runnable directly via `node src/cli/main.ts`.
+ * Invoked by `bin/nt.mjs`; package builds compile this module to `dist/main.js`.
  */
 
 import { NtError } from "@age.nt/engine";
