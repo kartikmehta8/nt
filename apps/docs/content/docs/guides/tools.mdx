@@ -9,6 +9,9 @@ On its own, an agent can only think and talk. **Tools** give it powers: reading 
 file, running a command, or calling a website. This guide shows the built-in
 tools and how to make your own.
 
+Tools can also come from explicitly selected, trusted MCP servers. See
+[MCP guide](/docs/guides/mcp) for namespacing and approval policies.
+
 ## Built-in tools
 
 Some tools come ready to use. Just list them under `tools`:
@@ -85,18 +88,26 @@ When the agent runs this tool with the word "iPhone", NT replaces `{term}` with
 
 ## What a tool needs
 
-| Setting       | What it does                                            |
-| ------------- | ------------------------------------------------------- |
-| `description` | Tells the agent when to use the tool. Write it clearly. |
-| `type`        | `shell` to run a command, or `http` to call a website.  |
-| `command`     | The command to run (for `shell` tools).                 |
-| `url`         | The web address to call (for `http` tools).             |
-| `confirm`     | `true` to ask you in the terminal before every call.    |
+| Setting          | What it does                                                                      |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `description`    | Tells the agent when to use the tool. Defaults to its name.                       |
+| `type`           | `shell` (default) to run a command, or `http` to call a website.                  |
+| `input`          | Declares and validates the values available to `{placeholders}`.                  |
+| `command`        | Command template for a `shell` tool. Model values are inserted as shell literals. |
+| `url`            | URL template for an `http` tool. Model values are percent-encoded.                |
+| `method`         | HTTP method. Defaults to `GET`; non-GET/HEAD calls send the input object as JSON. |
+| `headers`        | Extra HTTP headers. They are withheld if model input changes the URL origin.      |
+| `allow_internal` | Permit private or loopback HTTP destinations. Defaults to `false`.                |
+| `confirm`        | `true` to ask in the terminal before every call. Defaults to `false`.             |
 
 <Callout title="The description matters">
   The agent decides when to use a tool by reading its `description`. A clear description like
   "Returns the current year" helps it pick the right tool at the right time.
 </Callout>
+
+HTTP tools accept only `http` or `https`, refuse redirects, cap response bodies,
+and block private, loopback, link-local, multicast, and unsafe DNS results by
+default. Set `allow_internal: true` only for a reviewed internal service.
 
 ## Ask before running
 

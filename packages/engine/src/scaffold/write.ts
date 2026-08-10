@@ -27,6 +27,7 @@ export interface ScaffoldResult {
 }
 
 /**
+ * Creates a destination directory only when it does not already exist.
  * @param dir The absolute target folder for the new project.
  */
 function ensureDirectory(dir: string): void {
@@ -40,6 +41,7 @@ function ensureDirectory(dir: string): void {
 }
 
 /**
+ * Returns the absolute path to write, erroring if it would escape the folder.
  * @param dir The absolute target folder.
  * @param relative A template-declared path relative to that folder.
  * @returns The absolute path to write, erroring if it would escape the folder.
@@ -53,6 +55,7 @@ function targetPath(dir: string, relative: string): string {
 }
 
 /**
+ * Persists file to its configured destination.
  * @param full The absolute path to write.
  * @param content The file contents.
  * @param force Whether an existing file may be overwritten.
@@ -70,6 +73,7 @@ function writeFile(full: string, content: string, force: boolean): boolean {
 }
 
 /**
+ * Returns where the project was written, which files were created, and which were left alone.
  * @param dir The folder to scaffold into; created when missing.
  * @param options The template to write and whether existing files may be overwritten.
  * @returns Where the project was written, which files were created, and which were left alone.

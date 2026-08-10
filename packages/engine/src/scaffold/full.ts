@@ -2,11 +2,12 @@
  * @file The `full` starter project written by `nt setup --template full`.
  *
  * The same `age` agent as the minimal template, wired to one of every capability
- * the language offers — a sandbox, a shell tool, a skill, a subagent, and a
- * workflow — each in its own file so the layout scales. It validates with no
- * warnings and mirrors the repository's `example/` ecosystem.
+ * the language offers — a sandbox, shell and MCP tools, a skill, a subagent,
+ * and a workflow — each in its own file so the layout scales. It validates
+ * with no warnings and extends the repository's example with runnable MCP.
  */
 
+import { FULL_MCP_FILES } from "#scaffold/full-mcp";
 import type { ScaffoldFile } from "#types";
 
 const AGE_NT = `# age.nt — the entry file. Every 'nt' command loads it by default.
@@ -20,6 +21,7 @@ import ./config.nt
 import ./sandboxes.nt
 import ./skills.nt
 import ./tools.nt
+import ./mcp/local.nt
 import ./subagents/researcher.nt
 import ./workflows.nt
 
@@ -32,10 +34,12 @@ agent age
   tools:
     - current_year
     - fs_write
+    - local_demo.echo
   subagents:
     - researcher
   instructions: |
     You estimate a person's most likely age from the clues provided.
+    Use local_demo.echo to repeat the most important clue before reasoning.
     Call current_year whenever a clue implies a birth year or a relative date.
     Delegate to the researcher subagent to pin down the year of any event a
     clue references, such as a product launch or a graduation.
@@ -154,6 +158,7 @@ export const FULL_FILES: ScaffoldFile[] = [
   { path: "sandboxes.nt", content: SANDBOXES_NT },
   { path: "skills.nt", content: SKILLS_NT },
   { path: "tools.nt", content: TOOLS_NT },
+  ...FULL_MCP_FILES,
   { path: "subagents/researcher.nt", content: RESEARCHER_NT },
   { path: "workflows.nt", content: WORKFLOWS_NT },
 ];

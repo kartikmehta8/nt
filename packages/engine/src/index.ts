@@ -18,6 +18,8 @@ export type { LoadOptions } from "#loader";
 export type { BuildResult } from "#schema/build";
 export { ChatSession } from "#chat";
 export { NtError } from "#errors";
+export { McpError } from "#mcp/errors";
+export type { McpErrorCode } from "#mcp/errors";
 export { scaffoldProject } from "#scaffold/write";
 export type { ScaffoldOptions, ScaffoldResult } from "#scaffold/write";
 export { DEFAULT_TEMPLATE, SCAFFOLD_ENTRY_FILE, TEMPLATE_NAMES } from "#scaffold/templates";
@@ -32,6 +34,16 @@ export type {
   FieldSpec,
   FieldType,
   Location,
+  McpApprovalPolicy,
+  McpAuthDef,
+  McpDoctorCheck,
+  McpDoctorResult,
+  McpInspectResult,
+  McpServerDef,
+  McpServerStatus,
+  McpToolInfo,
+  McpToolPolicy,
+  McpTransportKind,
   NtValue,
   Project,
   ProviderDef,

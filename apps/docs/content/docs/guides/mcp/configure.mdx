@@ -1,0 +1,125 @@
+---
+title: Configure servers and tools
+description: Declare stdio or Streamable HTTP servers, select their tools, and assign stable references to agents.
+---
+
+<img
+  src="/configure-servers-and-tools.png"
+  alt="Configure servers and tools"
+  className="nt-banner"
+/>
+
+Every MCP declaration needs a unique name, a transport, and an explicit tool
+selection. Server names are case-sensitive, begin with a letter, contain only
+letters, numbers, `_`, or `-`, and are at most 48 characters long.
+
+## Local servers over stdio
+
+Use `stdio` for a program that NT starts and communicates with directly:
+
+```yaml
+mcp filesystem
+  transport: stdio
+  command: node
+  args: [./servers/filesystem.mjs]
+  cwd: .
+  env:
+    WORKSPACE_ID: env(WORKSPACE_ID)
+  connect_timeout_ms: 10000
+  call_timeout_ms: 60000
+  max_concurrency: 4
+  tools: [read_document]
+```
+
+`command` is spawned directly with the declared `args`; NT does not insert a
+shell. The working directory defaults to the project root and must stay inside
+it. `allow_outside_cwd: true` is an explicit, warning-producing escape hatch.
+The child receives a minimal system environment plus only entries declared in
+`env`, so credentials from the parent process are not inherited accidentally.
+
+Pin package versions or executable paths whenever possible. Trust protects a
+reviewed definition from changing silently, but a floating package tag can
+still resolve to different code without changing the declaration.
+
+## Remote servers over Streamable HTTP
+
+```yaml
+mcp records
+  transport: streamable_http
+  url: https://mcp.example.com/mcp
+  auth:
+    type: bearer
+    token: env(RECORDS_MCP_TOKEN)
+  headers:
+    x-tenant-id: env(RECORDS_TENANT_ID)
+  tools:
+    search:
+      approval: never
+    update_record:
+      approval: once
+```
+
+Remote URLs must use HTTPS, except for literal loopback development endpoints.
+URLs cannot contain credentials or fragments. Use `auth`, not an
+`Authorization` header; bearer tokens must be `env(NAME)` references without a
+literal fallback. For an explicit unauthenticated declaration, use a block with
+`auth:` followed by `type: none`. NT also supports [OAuth
+authorization](/docs/guides/mcp/security#oauth).
+
+Streamable HTTP is the normal remote transport. Compatibility with legacy
+HTTP+SSE is disabled unless you explicitly set `allow_legacy_sse: true`.
+
+## Common fields
+
+| Field                  | Default     | Purpose                                                        |
+| ---------------------- | ----------- | -------------------------------------------------------------- |
+| `description`          | server name | Human-facing explanation.                                      |
+| `transport`            | required    | `stdio` or `streamable_http`.                                  |
+| `tools`                | empty       | Explicit list or policy map of eligible remote tools.          |
+| `connect_timeout_ms`   | `10000`     | Connection limit, from 1,000 to 120,000 ms.                    |
+| `call_timeout_ms`      | `60000`     | Default call limit, from 1,000 to 600,000 ms.                  |
+| `max_concurrency`      | `4`         | Simultaneous calls, from 1 to 32.                              |
+| `include_instructions` | `false`     | Add delimited, untrusted server instructions to agent context. |
+| `allow_internal`       | `false`     | Permit private or loopback HTTP destinations.                  |
+
+Stdio additionally accepts `command`, `args`, `cwd`, `env`, and
+`allow_outside_cwd`. HTTP accepts `url`, `auth`, `headers`, and
+`allow_legacy_sse`. Supplying a field for the wrong transport is an error, not
+an ignored setting.
+
+## Select and assign tools
+
+List form selects tools with the safe default, `approval: required`:
+
+```yaml
+tools: [search, fetch]
+```
+
+Map form can refine each selected tool:
+
+```yaml
+tools:
+  search:
+    approval: never
+    description: Search the reviewed knowledge base
+    call_timeout_ms: 15000
+  update:
+    approval: required
+```
+
+An agent reference is `<server>.<remote-tool-name>`:
+
+```yaml
+agent analyst
+  tools: [records.search]
+```
+
+NT splits at the first dot, so `records.repo.search` refers to server `records`
+and remote tool `repo.search`. Internally it creates a deterministic,
+provider-safe model name; `nt mcp list` shows both names.
+
+The special `"*"` selection and `<server>.*` agent reference expose all current
+advertised tools. Validation warns because a later server release can add a new
+tool without a source change. A wildcard can never use `approval: never`, and a
+concrete policy overrides its wildcard policy. Prefer concrete selections for
+production projects.

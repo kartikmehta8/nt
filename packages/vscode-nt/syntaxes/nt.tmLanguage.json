@@ -28,7 +28,7 @@
       }
     },
     "declaration": {
-      "match": "^(agent|subagent|sandbox|tool|skill|workflow|provider|config)\\b(?:\\s+([A-Za-z0-9_-]+))?",
+      "match": "^(agent|subagent|sandbox|tool|skill|workflow|provider|mcp|config)\\b(?:\\s+([A-Za-z0-9_-]+))?",
       "captures": {
         "1": { "name": "keyword.control.declaration.nt" },
         "2": { "name": "entity.name.type.nt" }

@@ -61,6 +61,16 @@ function fakeRegistry(replies: LlmResponse[]): ProviderRegistry {
   return registry;
 }
 
+async function run(context: RunContext, agent: AgentDef): Promise<void> {
+  await driveConversation(
+    context,
+    await buildRuntime(context, agent),
+    new VirtualSandbox({ cwd: "/workspace", env: {} }),
+    [{ role: "user", content: "go" }],
+    0,
+  );
+}
+
 test("the session loop logs every tool call it dispatches", async () => {
   const { project } = build(
     `config\n  audit: ${dir}\n  defaults:\n    model: anthropic/claude-sonnet-5\n` +
@@ -95,13 +105,7 @@ test("the session loop logs every tool call it dispatches", async () => {
     audit: openAuditLog(project),
     runId: "run-42",
   };
-  await driveConversation(
-    context,
-    buildRuntime(context, agent),
-    new VirtualSandbox({ cwd: "/workspace", env: {} }),
-    [{ role: "user", content: "go" }],
-    0,
-  );
+  await run(context, agent);
 
   const entries = readAuditEntries(dir, 10);
   assert.deepEqual(
@@ -161,13 +165,7 @@ test("delegated calls are logged at their own depth under one run id", async () 
     audit: openAuditLog(project),
     runId: "run-nested",
   };
-  await driveConversation(
-    context,
-    buildRuntime(context, agentOf(project, "boss")),
-    new VirtualSandbox({ cwd: "/workspace", env: {} }),
-    [{ role: "user", content: "go" }],
-    0,
-  );
+  await run(context, agentOf(project, "boss"));
 
   const entries = readAuditEntries(dir, 10);
   assert.deepEqual(
@@ -200,13 +198,7 @@ test("a session with logging off writes nothing", async () => {
     audit: openAuditLog(project),
     runId: "run-off",
   };
-  await driveConversation(
-    context,
-    buildRuntime(context, agent),
-    new VirtualSandbox({ cwd: "/workspace", env: {} }),
-    [{ role: "user", content: "go" }],
-    0,
-  );
+  await run(context, agent);
   assert.deepEqual(fs.readdirSync(dir), []);
 });
 
@@ -240,13 +232,7 @@ test("a tool the agent was not granted is refused at dispatch and audited", asyn
     audit: openAuditLog(project),
     runId: "run-99",
   };
-  await driveConversation(
-    context,
-    buildRuntime(context, agent),
-    new VirtualSandbox({ cwd: "/workspace", env: {} }),
-    [{ role: "user", content: "go" }],
-    0,
-  );
+  await run(context, agent);
 
   const entries = readAuditEntries(dir, 10);
   assert.deepEqual(

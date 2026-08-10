@@ -1,6 +1,6 @@
 {
   "name": "@age.nt/engine",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "The NT language and runtime engine: parser, schema, providers, sandboxes, and the agentic session loop.",
   "type": "module",
   "license": "MIT",
@@ -56,5 +56,13 @@
   },
   "engines": {
     "node": ">=22.18.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "ajv": "8.20.0",
+    "undici": "7.29.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/server": "2.0.0"
   }
 }

@@ -528,7 +528,7 @@ a.nt-badge:hover {
   font-weight: 600;
   color: #cccccc;
 }
-.nt-vscode-folder.sub {
+.nt-vscode-folder.nested {
   padding-left: 1.3rem;
 }
 .nt-vscode-folder .chev {
@@ -548,7 +548,7 @@ a.nt-badge:hover {
   color: #bcbcbc;
   text-align: left;
 }
-.nt-vscode-file.sub {
+.nt-vscode-file.nested {
   padding-left: 2.1rem;
 }
 .nt-vscode-file svg {
@@ -718,49 +718,103 @@ a.nt-badge:hover {
 }
 
 /* ---- Feature grid ------------------------------------------------------- */
+.nt-feature-heading {
+  max-width: 680px;
+}
 .nt-features {
-  margin-top: 3rem;
+  margin-top: 2.5rem;
   display: grid;
-  gap: 1.1rem;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
 }
 .nt-card {
   position: relative;
-  padding: 1.5rem;
-  border-radius: 12px;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: clamp(1.4rem, 3vw, 2rem);
+  border-radius: 16px;
   background: #fff;
   border: 1px solid var(--nt-line);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.025);
   transition:
+    transform 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
+.nt-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 2px;
+  background: var(--nt-ink);
+  transform: scaleX(0.12);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
 .nt-card:hover {
+  transform: translateY(-3px);
   border-color: var(--nt-line-strong);
-  box-shadow: 0 8px 30px -18px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 18px 45px -32px rgba(0, 0, 0, 0.45);
+}
+.nt-card:hover::after {
+  transform: scaleX(1);
+}
+.nt-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 .nt-card-ico {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background: #fafafa;
   border: 1px solid var(--nt-line);
   color: var(--nt-ink);
   font-size: 1.2rem;
-  margin-bottom: 1rem;
+}
+.nt-card-label {
+  padding-top: 0.25rem;
+  color: var(--nt-ink-faint);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.nt-card-copy {
+  margin-top: auto;
+  padding-top: clamp(2rem, 5vw, 3.25rem);
 }
 .nt-card h3 {
-  font-size: 1.12rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  max-width: 22ch;
+  font-size: clamp(1.2rem, 2.3vw, 1.45rem);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
   color: var(--nt-ink);
 }
 .nt-card p {
-  margin-top: 0.5rem;
+  margin-top: 0.7rem;
+  max-width: 46ch;
   color: var(--nt-ink-soft);
-  font-size: 0.94rem;
-  line-height: 1.6;
+  font-size: 0.96rem;
+  line-height: 1.65;
+}
+@media (max-width: 680px) {
+  .nt-features {
+    grid-template-columns: 1fr;
+  }
+  .nt-card {
+    min-height: 225px;
+  }
 }
 
 /* ---- Building blocks pills --------------------------------------------- */

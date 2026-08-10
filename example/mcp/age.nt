@@ -1,0 +1,13 @@
+mcp fixture
+  description: Repository-owned MCP example server
+  transport: stdio
+  command: node
+  args: [../../packages/engine/test/fixtures/mcp/stdio-server.mjs]
+  tools:
+    echo:
+      approval: required
+
+agent mcp_example
+  description: Calls the repository-owned echo tool.
+  model: anthropic/claude-sonnet-5
+  tools: [fixture.echo]

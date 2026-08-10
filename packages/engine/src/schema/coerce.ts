@@ -11,6 +11,7 @@ import { NtError } from "#errors";
 import type { EnvRef, FieldSpec, FieldType, Location, NtValue, ThinkingLevel } from "#types";
 
 /**
+ * Determines whether map.
  * @param v A parsed value.
  * @returns Whether the value is a plain key/value map.
  */
@@ -19,6 +20,7 @@ export function isMap(v: NtValue): v is Record<string, NtValue> {
 }
 
 /**
+ * Determines whether env ref.
  * @param v A parsed value.
  * @returns Whether the value is an `env(...)` reference.
  */
@@ -27,6 +29,7 @@ export function isEnvRef(v: NtValue): v is EnvRef {
 }
 
 /**
+ * Resolves env from the available configuration.
  * @param v An env reference or scalar.
  * @returns The resolved environment value, or the passed-through scalar.
  */
@@ -37,6 +40,7 @@ export function resolveEnv(v: NtValue): NtValue {
 }
 
 /**
+ * Returns the value as a string, erroring on non-scalars.
  * @param v The value to coerce.
  * @param ctx Field description for error messages.
  * @param loc Source location for error messages.
@@ -49,6 +53,7 @@ export function str(v: NtValue | undefined, ctx: string, loc: Location): string 
 }
 
 /**
+ * Returns the string value, or null when absent.
  * @param v The value to coerce, if present.
  * @param ctx Field description for error messages.
  * @param loc Source location for error messages.
@@ -59,6 +64,7 @@ export function optStr(v: NtValue | undefined, ctx: string, loc: Location): stri
 }
 
 /**
+ * Returns the numeric value, or null when absent.
  * @param v The value to coerce, if present.
  * @param ctx Field description for error messages.
  * @param loc Source location for error messages.
@@ -71,6 +77,7 @@ export function optNum(v: NtValue | undefined, ctx: string, loc: Location): numb
 }
 
 /**
+ * Returns the boolean value, or null when absent.
  * @param v The value to coerce, if present.
  * @param ctx Field description for error messages.
  * @param loc Source location for error messages.
@@ -85,6 +92,7 @@ export function optBool(v: NtValue | undefined, ctx: string, loc: Location): boo
 }
 
 /**
+ * Returns the list coerced to strings, or an empty array when absent.
  * @param v The value to coerce, if present.
  * @param ctx Field description for error messages.
  * @param loc Source location for error messages.
@@ -97,10 +105,12 @@ export function strList(v: NtValue | undefined, ctx: string, loc: Location): str
 }
 
 /**
+ * Reports unknown without interrupting project loading.
  * @param body The block body being interpreted.
  * @param allowed The set of recognized field names.
  * @param ctx Block description for the warning text.
  * @param warnings Accumulator that receives one message per unknown field.
+ * @returns Nothing; warnings are appended to the supplied accumulator.
  */
 export function warnUnknown(
   body: Record<string, NtValue>,
@@ -113,6 +123,7 @@ export function warnUnknown(
 }
 
 /**
+ * Parses thinking into its validated internal representation.
  * @param v The candidate thinking level.
  * @param loc Source location for error messages.
  * @returns The validated thinking level, or null when absent.
@@ -126,6 +137,7 @@ export function parseThinking(v: NtValue | undefined, loc: Location): ThinkingLe
 }
 
 /**
+ * Parses fields into its validated internal representation.
  * @param v A map of field name to type name or descriptor.
  * @param ctx Field description for error messages.
  * @param loc Source location for error messages.
@@ -160,6 +172,7 @@ export function parseFields(
 }
 
 /**
+ * Converts an unknown field type into the supported runtime type vocabulary.
  * @param t A raw type name from the source.
  * @param ctx Field description for the warning text.
  * @param warnings Accumulator that receives a message when the type is unrecognized.

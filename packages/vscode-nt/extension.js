@@ -15,7 +15,9 @@ const NT_GLOB = "**/*.nt";
 const NT_EXCLUDE = "**/node_modules/**";
 
 /**
+ * Activates the NT language features and keeps the workspace index synchronized.
  * @param context The extension context provided by VS Code.
+ * @returns A promise that settles after indexing and provider registration.
  */
 async function activate(context) {
   const index = new NtIndex();
@@ -44,6 +46,12 @@ async function activate(context) {
   );
 }
 
+/**
+ * Releases no additional state because every registration is owned by the
+ * extension context and disposed by VS Code.
+ *
+ * @returns Nothing; VS Code performs subscription cleanup.
+ */
 function deactivate() {}
 
 module.exports = { activate, deactivate };

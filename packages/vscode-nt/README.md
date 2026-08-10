@@ -12,22 +12,26 @@ references, across imported files.
 ## Features
 
 **Syntax highlighting** for `import` statements, declaration keywords (`agent`,
-`subagent`, `sandbox`, `tool`, `skill`, `workflow`, `provider`, `config`), entity
+`subagent`, `sandbox`, `tool`, `mcp`, `skill`, `workflow`, `provider`, `config`), entity
 names, field keys, `env(...)`, block scalars, strings, and numbers.
 
 **IntelliSense** (works within a file and across imported files):
 
-- **Go to Definition** — F12 or Ctrl/Cmd-click a tool, subagent, sandbox, skill,
-  workflow, or agent name to jump to its declaration, in the same file or
-  another. Works on `import ./path.nt` paths too.
-- **Hover** — see an entity's kind, description, and defining location. Built-in
-  tools (`fs_read`, `fs_write`, `fs_list`, `bash`) show a description.
+- **Go to Definition** — F12 or Ctrl/Cmd-click a tool, selected MCP tool,
+  subagent, sandbox, skill, workflow, or agent name to jump to its declaration,
+  in the same file or another. Works on `import ./path.nt` paths too.
+- **Hover** — see an entity's kind, description, and defining location. MCP
+  servers show transport and selected MCP policies show approval. Built-in tools
+  (`fs_read`, `fs_write`, `fs_list`, `bash`) show a description.
 - **Completion** — inside `tools:` / `subagents:` / `skills:` lists and after
-  `sandbox:`, suggests the matching declared names (plus built-in tools). At the
-  start of a line, suggests declaration keywords.
+  `sandbox:`, suggests matching declarations, MCP servers, statically selected
+  MCP tools, and built-in tools. At the start of a line, suggests declaration
+  keywords.
 - **Outline & breadcrumbs** — every declaration appears in the Outline view and
   the "Go to Symbol" (Ctrl/Cmd-Shift-O) picker.
 - **Find All References** — right-click a name → Find All References.
+- **MCP snippets** — stdio, bearer HTTP, and OAuth declarations. The extension
+  stays offline and never connects to or executes an MCP server.
 
 The index refreshes automatically as you edit, save, create, or delete `.nt`
 files, so definitions stay current across the whole workspace.

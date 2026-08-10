@@ -1,19 +1,14 @@
 /**
- * @file Animated "thinking" indicator for interactive commands.
+ * @file Animated progress indicator for interactive model and tool activity.
  *
- * While a model call is in flight, renders a single rewriting line — a pulsing
- * glyph, a randomly rotating gerund ("Pondering…", "Percolating…"), and the
- * elapsed seconds. With `--show-tool-calls`, engine step events replace the
- * gerund with what is actually happening ("Running tool fs_read…"). Animates
- * only on a TTY; on pipes and files it is a no-op so scripted output stays
- * clean.
+ * Renders a glyph, status, and elapsed time; step events can name real work.
+ * It is TTY-only, preserves scripted output, and restores the cursor on exit.
  */
 
 import type { StepEvent } from "@age.nt/engine";
 import { cyan, dim } from "#format";
 
 const FRAMES = ["✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳"];
-
 const WORDS = [
   "Thinking",
   "Pondering",
@@ -75,6 +70,7 @@ export interface ThinkingHandle {
 }
 
 /**
+ * Returns a randomly chosen thinking word different from the previous one.
  * @param previous The word to avoid repeating back-to-back.
  * @returns A randomly chosen thinking word different from the previous one.
  */
@@ -184,6 +180,7 @@ let stepReporting = false;
  * `reportStep` ignores every event and the line keeps its rotating words.
  *
  * @param enabled Whether engine step events should drive the thinking line.
+ * @returns Nothing; the setting affects subsequent events in this process.
  */
 export function setStepReporting(enabled: boolean): void {
   stepReporting = enabled;
@@ -217,6 +214,8 @@ export function beginThinking(
 /**
  * Pauses the currently running indicator, if any, so a terminal prompt can
  * take over the line and the cursor.
+ *
+ * @returns Nothing; calling with no active indicator is safe.
  */
 export function pauseThinking(): void {
   active?.pause();
@@ -224,6 +223,8 @@ export function pauseThinking(): void {
 
 /**
  * Resumes the currently running indicator, if any, after a prompt finishes.
+ *
+ * @returns Nothing; calling with no active indicator is safe.
  */
 export function resumeThinking(): void {
   active?.resume();
@@ -237,6 +238,7 @@ export function resumeThinking(): void {
  * delegation visible by naming the subagent that is thinking.
  *
  * @param event The step event reported by the engine.
+ * @returns Nothing; the active indicator is updated in place when enabled.
  */
 export function reportStep(event: StepEvent): void {
   if (!stepReporting || !active) return;

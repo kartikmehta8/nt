@@ -13,6 +13,7 @@ import type { Args } from "#args";
 import { bold, cyan, dim, green, out, printWarnings, yellow } from "#format";
 
 /**
+ * Returns the name to run first: the configured entry, or the first declared agent.
  * @param project The freshly scaffolded project.
  * @returns The name to run first: the configured entry, or the first declared agent.
  */
@@ -21,6 +22,7 @@ function entryName(project: Project): string {
 }
 
 /**
+ * Returns the shortest way to name that folder from the current one, or null when it is the current one.
  * @param dir The absolute folder the project was written to.
  * @returns The shortest way to name that folder from the current one, or null when it is the current one.
  */
@@ -31,13 +33,16 @@ function changeDirectoryTo(dir: string): string | null {
 }
 
 /**
+ * Writes next steps in the caller-selected output format.
  * @param result Where the project was written.
  * @param project The loaded project, used to name what to run.
  */
 function printNextSteps(result: ScaffoldResult, project: Project): void {
   const target = changeDirectoryTo(result.dir);
+  const [mcpServer] = project.mcpServers.keys();
   const steps = [
     ...(target ? [`cd ${target}`] : []),
+    ...(mcpServer ? [`nt mcp trust ${mcpServer}`, `nt mcp doctor ${mcpServer}`] : []),
     "export ANTHROPIC_API_KEY=sk-ant-...",
     `nt run ${cyan(entryName(project))} -m "bought the first iPhone at 22"`,
   ];
@@ -47,7 +52,9 @@ function printNextSteps(result: ScaffoldResult, project: Project): void {
 }
 
 /**
+ * Installs the selected editor integration after explicit replacement checks.
  * @param args The parsed arguments.
+ * @returns Nothing; created files and next steps are printed to stdout.
  */
 export function cmdSetup(args: Args): void {
   const result = scaffoldProject(args.positional[1] ?? ".", {
@@ -63,6 +70,6 @@ export function cmdSetup(args: Args): void {
 
   const { project, warnings } = loadProject(result.entry);
   printWarnings(warnings);
-  out(green(`\n✓ ${project.files.length} file(s) OK`));
+  out(green(`\n✓ ${project.files.length} .nt file(s) OK`));
   printNextSteps(result, project);
 }

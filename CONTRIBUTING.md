@@ -1,16 +1,19 @@
 # Contributing to NT
 
 Thanks for your interest in contributing! This is a pnpm monorepo with three
-packages:
+published packages and one documentation application:
 
 | Package              | npm name         | What it is                                       |
 | -------------------- | ---------------- | ------------------------------------------------ |
 | `packages/engine`    | `@age.nt/engine` | The NT language, parser, schema, and runtime     |
 | `packages/cli`       | `@age.nt/nt`     | The `nt` command-line interface (binary is `nt`) |
-| `packages/vscode-nt` | `vscode-nt`      | VS Code syntax + IntelliSense for `.nt` files    |
+| `packages/vscode-nt` | `nt-agent-lang`  | VS Code syntax + IntelliSense for `.nt` files    |
+| `apps/docs`          | private          | Fumadocs + Next.js documentation site            |
 
-NT runs TypeScript directly via Node's native type-stripping — **there is no
-build step**. This is why Node **>= 22.18.0** is required.
+Development commands run TypeScript directly through Node's native type
+stripping, which is why Node **>= 22.18.0** is required. Published engine and
+CLI packages are compiled to `dist/` with `tsc`; `pnpm typecheck` performs that
+production build rather than a no-emit check.
 
 ## Getting started
 
@@ -22,8 +25,9 @@ pnpm install             # also installs git hooks via husky
 ## Everyday commands
 
 ```bash
-pnpm typecheck           # tsc --noEmit across packages
-pnpm lint                # eslint
+pnpm typecheck           # compile the engine and CLI with tsc
+pnpm lint                # eslint + repository convention checks
+pnpm check:docs          # verify documentation against code and manifests
 pnpm lint:fix            # eslint --fix
 pnpm format              # prettier --write
 pnpm format:check        # prettier --check

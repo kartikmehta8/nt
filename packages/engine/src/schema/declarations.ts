@@ -1,17 +1,15 @@
 /**
  * @file Interprets each block kind into its typed definition.
  *
- * One parser per kind — `parseSandbox`, `parseTool`, `parseSkill`, `parseAgent`
- * (agents and subagents), `parseWorkflow`, `parseProvider` — validating fields,
- * warning on unknown ones, and resolving env references where credentials or
- * environment values are expected.
+ * Owns the focused parsers for sandboxes, tools, skills, agents/subagents, and
+ * workflows, validating fields and warning on unknown ones. Provider and MCP
+ * coercion live in sibling modules because their transport and credential
+ * policies form separate domains. No declaration parser performs runtime I/O.
  */
 
-import { isIP } from "node:net";
-import { DEFAULT_SANDBOX_CWD, DELEGATE_PREFIX, isBuiltinTool } from "#constants";
+import { DEFAULT_SANDBOX_CWD, DELEGATE_PREFIX, MCP_TOOL_PREFIX, isBuiltinTool } from "#constants";
 import { NtError } from "#errors";
 import {
-  isEnvRef,
   isMap,
   optBool,
   optNum,
@@ -22,22 +20,18 @@ import {
   strList,
   warnUnknown,
 } from "#schema/coerce";
-import type {
-  AgentDef,
-  Location,
-  NtValue,
-  ProviderDef,
-  SandboxDef,
-  SkillDef,
-  ToolDef,
-  WorkflowDef,
-  WorkflowStep,
-} from "#types";
+import type { AgentDef, Location, NtValue, SandboxDef, SkillDef, ToolDef } from "#types";
 
 type Body = Record<string, NtValue>;
 
 /**
- * @returns The parsed sandbox definition.
+ * Parses a sandbox and resolves its environment references without running it.
+ *
+ * @param name Declaration name supplied by the syntax parser.
+ * @param body Raw sandbox fields.
+ * @param loc Source location used in diagnostics.
+ * @param warnings Collector for non-fatal unknown-field warnings.
+ * @returns Validated sandbox definition.
  */
 export function parseSandbox(
   name: string | null,
@@ -66,7 +60,13 @@ export function parseSandbox(
 }
 
 /**
- * @returns The parsed tool definition.
+ * Parses a shell or HTTP tool while enforcing reserved-name boundaries.
+ *
+ * @param name Declaration name supplied by the syntax parser.
+ * @param body Raw tool fields.
+ * @param loc Source location used in diagnostics.
+ * @param warnings Collector for non-fatal unknown-field warnings.
+ * @returns Validated custom-tool definition.
  */
 export function parseTool(
   name: string | null,
@@ -80,6 +80,11 @@ export function parseTool(
   if (name.startsWith(DELEGATE_PREFIX))
     throw new NtError(
       `tool name '${name}' is reserved: the '${DELEGATE_PREFIX}' prefix is used for subagent delegation`,
+      loc,
+    );
+  if (name.startsWith(MCP_TOOL_PREFIX))
+    throw new NtError(
+      `tool name '${name}' is reserved: the '${MCP_TOOL_PREFIX}' prefix is used for MCP tools`,
       loc,
     );
   const fields = [
@@ -118,7 +123,13 @@ export function parseTool(
 }
 
 /**
- * @returns The parsed skill definition.
+ * Parses a reusable instruction bundle.
+ *
+ * @param name Declaration name supplied by the syntax parser.
+ * @param body Raw skill fields.
+ * @param loc Source location used in diagnostics.
+ * @param warnings Collector for non-fatal unknown-field warnings.
+ * @returns Validated skill definition.
  */
 export function parseSkill(
   name: string | null,
@@ -137,8 +148,14 @@ export function parseSkill(
 }
 
 /**
+ * Parses a top-level agent or delegated subagent with the same field contract.
+ *
  * @param kind Whether this is a top-level agent or a delegated subagent.
- * @returns The parsed agent definition.
+ * @param name Declaration name supplied by the syntax parser.
+ * @param body Raw agent fields.
+ * @param loc Source location used in diagnostics.
+ * @param warnings Collector for non-fatal unknown-field warnings.
+ * @returns Validated agent definition.
  */
 export function parseAgent(
   kind: "agent" | "subagent",
@@ -180,128 +197,6 @@ export function parseAgent(
     input: parseFields(body.input, `${kind} ${name}.input`, loc, warnings),
     output: parseFields(body.output, `${kind} ${name}.output`, loc, warnings),
     message: optStr(body.message, `${kind}.message`, loc),
-    loc,
-  };
-}
-
-/**
- * @returns The parsed workflow definition.
- */
-export function parseWorkflow(
-  name: string | null,
-  body: Body,
-  loc: Location,
-  warnings: string[],
-): WorkflowDef {
-  if (!name) throw new NtError("workflow declaration requires a name", loc);
-  warnUnknown(
-    body,
-    ["description", "agent", "input", "output", "steps"],
-    `workflow ${name}`,
-    warnings,
-  );
-  return {
-    name,
-    description: optStr(body.description, "workflow.description", loc) ?? "",
-    agent: optStr(body.agent, "workflow.agent", loc),
-    input: parseFields(body.input, `workflow ${name}.input`, loc, warnings),
-    output: parseFields(body.output, `workflow ${name}.output`, loc, warnings),
-    steps: parseSteps(body.steps, loc),
-    loc,
-  };
-}
-
-/**
- * @returns The parsed workflow steps.
- */
-function parseSteps(v: NtValue | undefined, loc: Location): WorkflowStep[] {
-  if (v === undefined) return [];
-  if (!Array.isArray(v)) throw new NtError("workflow.steps must be a list", loc);
-  return v.map((s) => {
-    if (!isMap(s)) throw new NtError("each workflow step must be a map", loc);
-    const into = optStr(s.into, "step.into", loc) ?? undefined;
-    if (into && ["__proto__", "constructor", "prototype"].includes(into))
-      throw new NtError(`step.into must not be '${into}'`, loc);
-    return {
-      prompt: optStr(s.prompt, "step.prompt", loc) ?? undefined,
-      agent: optStr(s.agent, "step.agent", loc) ?? undefined,
-      skill: optStr(s.skill, "step.skill", loc) ?? undefined,
-      into,
-    };
-  });
-}
-
-const AUTH_HEADER_NAMES = new Set(["x-api-key", "authorization"]);
-
-/**
- * @param baseUrl The declared provider endpoint.
- * @param loc Source location for error messages.
- */
-function checkBaseUrl(baseUrl: string, loc: Location): void {
-  let parsed: URL;
-  try {
-    parsed = new URL(baseUrl);
-  } catch {
-    throw new NtError(`provider.base_url is not a valid URL: ${baseUrl}`, loc);
-  }
-  const host = parsed.hostname.replace(/^\[|\]$/g, "");
-  const local =
-    host === "localhost" ||
-    host === "::1" ||
-    (isIP(host) === 4 && host.startsWith("127.")) ||
-    host.endsWith(".localhost");
-  if (parsed.protocol !== "https:" && !local)
-    throw new NtError(
-      `provider.base_url must use https (API keys would be sent in cleartext): ${baseUrl}`,
-      loc,
-    );
-}
-
-/**
- * @returns The parsed provider definition, extracting any env-based credentials.
- */
-export function parseProvider(
-  name: string | null,
-  body: Body,
-  loc: Location,
-  warnings: string[],
-): ProviderDef {
-  if (!name) throw new NtError("provider declaration requires a name", loc);
-  warnUnknown(body, ["api", "base_url", "api_key", "headers"], `provider ${name}`, warnings);
-  const api =
-    optStr(body.api, "provider.api", loc) ??
-    (name === "anthropic" ? "anthropic" : "openai-completions");
-  if (api !== "anthropic" && api !== "openai-completions")
-    throw new NtError(
-      `provider.api must be 'anthropic' or 'openai-completions', got '${api}'`,
-      loc,
-    );
-  const baseUrl = optStr(body.base_url, "provider.base_url", loc);
-  if (baseUrl) checkBaseUrl(baseUrl, loc);
-  const headers: Record<string, string> = {};
-  if (body.headers !== undefined && !isMap(body.headers))
-    throw new NtError("provider.headers must be a map", loc);
-  if (body.headers !== undefined && isMap(body.headers))
-    for (const [k, v] of Object.entries(body.headers)) {
-      if (AUTH_HEADER_NAMES.has(k.toLowerCase()))
-        warnings.push(
-          `provider ${name}: header '${k}' overrides the credential header set from api_key`,
-        );
-      headers[k] = String(resolveEnv(v));
-    }
-  if (body.api_key !== undefined && !isEnvRef(body.api_key))
-    warnings.push(
-      `provider ${name}: api_key is a literal in source; use env(NAME) so the key never lands in a file`,
-    );
-  if (isEnvRef(body.api_key) && body.api_key.default)
-    warnings.push(`provider ${name}: api_key env() has a fallback literal in source; remove it`);
-  return {
-    name,
-    api,
-    baseUrl,
-    apiKeyEnv: isEnvRef(body.api_key) ? body.api_key.__env : null,
-    apiKey: body.api_key !== undefined && !isEnvRef(body.api_key) ? String(body.api_key) : null,
-    headers,
     loc,
   };
 }

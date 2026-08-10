@@ -1,3 +1,12 @@
+/**
+ * @file Normalized Fumadocs content source used by pages, navigation, and search.
+ *
+ * Bridges the generated MDX adapter's function-or-array `files` contract to the
+ * installed Fumadocs core loader while retaining its inferred page-data types.
+ * This compatibility shim is the single source behind route lookup, page trees,
+ * static parameters, and the search endpoint.
+ */
+
 import { docs } from "@/.source";
 import { loader } from "fumadocs-core/source";
 
@@ -21,7 +30,5 @@ const normalizedSource = {
  */
 export const source = loader({
   baseUrl: "/docs",
-  // Cast back to the MDX source type so the loader keeps inferring the typed
-  // page data (body, toc, structuredData, …) from the generated collection.
   source: normalizedSource as typeof mdxSource,
 });

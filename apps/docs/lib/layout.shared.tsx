@@ -1,6 +1,16 @@
+/**
+ * @file Navigation configuration shared by home and documentation layouts.
+ *
+ * Defines the NT wordmark, source link, and light-only theme behavior once so
+ * route layouts cannot drift in branding or expose a nonfunctional dark toggle.
+ */
+
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 
-/** The NT wordmark used in the navbar. */
+/**
+ * Renders the logo component from its documented props.
+ * @returns The accessible NT wordmark used in the shared navigation bar.
+ */
 function Logo() {
   return (
     <span className="nt-logo" aria-label="NT">
@@ -10,8 +20,8 @@ function Logo() {
 }
 
 /**
- * Options shared by the home layout and the docs layout — the navbar title,
- * links, and the GitHub source link.
+ * Returns navbar, theme, and source options shared by both site layouts.
+ * @returns Navbar, theme, and source options shared by both site layouts.
  */
 export function baseOptions(): BaseLayoutProps {
   return {
@@ -19,7 +29,6 @@ export function baseOptions(): BaseLayoutProps {
       title: <Logo />,
       transparentMode: "top",
     },
-    // Light-theme only — hide the (dead) dark-mode toggle.
     themeSwitch: { enabled: false },
     githubUrl: "https://github.com/kartikmehta8/nt",
   };

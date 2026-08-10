@@ -1,0 +1,86 @@
+---
+title: Model Context Protocol
+description: Connect NT agents to local and remote MCP tools without giving a server more authority than it needs.
+---
+
+<img src="/model-context-protocol.png" alt="Model Context Protocol" className="nt-banner" />
+
+NT can act as an MCP client and host. It connects to tool servers, discovers
+their catalogs, and exposes only the tools you select to the agents you choose.
+The first release intentionally does not expose NT agents as MCP servers or
+import MCP prompts and resources. It also rejects server-requested model
+sampling.
+
+NT implements this boundary with the exact-pinned official MCP client, Ajv for
+advertised JSON Schema validation, and Undici for socket-time network guards.
+They are normal engine runtime dependencies installed automatically with the
+CLI; no separate MCP package setup is required.
+
+## The safety model in one minute
+
+An MCP tool passes through three independent decisions:
+
+1. **Trust the server definition.** You review the process or URL that NT will
+   connect to. Trust is tied to a fingerprint and becomes invalid when a
+   security-relevant field changes.
+2. **Select tools from that server.** A server may advertise many tools, but
+   only names under the declaration's `tools` field are eligible.
+3. **Assign selected tools to an agent.** The agent receives only references in
+   its own `tools` list. Each call then follows the selected tool's approval
+   policy.
+
+This separation matters: trusting a server never exposes its whole catalog,
+and `--yes` can approve a tool call but cannot establish trust or complete
+OAuth.
+
+## A complete local example
+
+```yaml
+mcp github
+  transport: stdio
+  command: node
+  args: [./servers/github.mjs]
+  env:
+    GITHUB_PERSONAL_ACCESS_TOKEN: env(GITHUB_TOKEN)
+  tools:
+    search_repositories:
+      approval: never
+    create_issue:
+      approval: required
+
+agent researcher
+  model: anthropic/claude-sonnet-5
+  tools: [github.search_repositories]
+```
+
+Here `servers/github.mjs` represents a local MCP server you have installed and
+reviewed. The repository's runnable offline fixture is documented under
+`example/mcp/README.md` for contributors.
+
+Validate and review the declaration before connecting:
+
+```bash
+nt validate
+nt mcp trust github
+nt mcp doctor github
+nt run researcher -m "Find the project repository"
+```
+
+`nt validate` is deliberately offline. It parses fields and references without
+starting `npx`, opening a socket, reading stored OAuth credentials, or launching
+a browser. `trust` shows the exact execution boundary and asks you to approve
+its current fingerprint. `doctor` then checks the live server and selected
+catalog.
+
+## Where to go next
+
+- [Configure servers and tools](/docs/guides/mcp/configure) covers both
+  transports, every declaration field, tool names, and agent assignment.
+- [Security and authentication](/docs/guides/mcp/security) explains trust,
+  OAuth, network controls, approvals, untrusted metadata, and result limits.
+- [Operate and troubleshoot](/docs/guides/mcp/operations) documents every MCP
+  command, diagnostics, stable errors, lifecycle cleanup, and common failures.
+
+For machine-readable types and methods, see the [engine API
+reference](/docs/reference/api). For the complete command grammar, see the [CLI
+reference](/docs/reference/cli).

@@ -9,10 +9,16 @@ A **provider** is where the AI comes from. NT supports Claude (Anthropic),
 OpenAI, and any service that works like OpenAI (such as a local model). This
 guide shows how to set one up.
 
+Model-provider credentials are separate from MCP bearer/OAuth credentials and
+are never passed through to MCP servers. See the [MCP security
+guide](/docs/guides/mcp/security).
+
 ## The built-in providers
 
-Two providers are built in: `anthropic` (Claude) and `openai`. You still list the
-one you use in your `config` so NT knows your key:
+Two providers are built in: `anthropic` (Claude) reads
+`ANTHROPIC_API_KEY`, and `openai` reads `OPENAI_API_KEY`. You can use either
+without declaring it. Add a `providers` entry when you want to override a
+built-in or configure another OpenAI-compatible service:
 
 ```yaml title="config.nt"
 config
@@ -62,6 +68,7 @@ agent local
 | `api`      | The style to use: `anthropic` or `openai-completions`. |
 | `api_key`  | Your key, read from your environment with `env(...)`.  |
 | `base_url` | The web address, for local or custom services.         |
+| `headers`  | Optional extra request headers.                        |
 
 ## Keeping your key safe
 

@@ -55,6 +55,12 @@ The `-g` means "global", so you can use the `nt` command from any folder.
   Node first.
 </Callout>
 
+<Callout title="Runtime dependencies are included">
+  NT is not a zero-dependency runtime. Installing the CLI also installs the engine's exact-pinned
+  MCP client, Ajv for JSON Schema validation, and Undici for guarded HTTP connections. You do not
+  need to install these packages separately.
+</Callout>
+
 ## Step 2: Set your AI key
 
 NT talks to a real AI model, so it needs a key. If you are using Anthropic
@@ -91,7 +97,7 @@ Setting up an NT project in /Users/you/my-agent
   + age.nt
   + config.nt
 
-✓ 2 file(s) OK
+✓ 2 .nt file(s) OK
 
 Next steps
   1. export ANTHROPIC_API_KEY=sk-ant-...
@@ -102,8 +108,9 @@ Next steps
 Run that last line and you have a working agent.
 
 <Callout title="Want to see everything at once?">
-  `nt setup --template full` writes a bigger starter with a tool, a skill, a sandbox, a helper
-  agent, and a workflow — one of each, in its own file. See [CLI
+  `nt setup --template full` writes a bigger starter with a shell tool, a local MCP echo server, a
+  skill, a sandbox, a helper agent, and a workflow. The MCP server uses only Node.js built-ins, and
+  the setup output shows how to trust and check it before running the agent. See [CLI
   commands](/docs/reference/cli#starting-a-project).
 </Callout>
 

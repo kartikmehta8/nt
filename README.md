@@ -1,7 +1,7 @@
 ![banner](./assets/banner.png)
 
 **NT** is a small declarative language (`.nt` files) and a runtime engine.
-Describe your models, agents, subagents, sandboxes, tools, skills and workflows
+Describe your models, agents, subagents, sandboxes, tools, MCP servers, skills and workflows
 in one clean file, and one command brings the whole ecosystem up.
 
 ## Install
@@ -16,6 +16,12 @@ Editor support: install the **NT** extension from the
 or [Open VSX](https://open-vsx.org/extension/KartikMehta/nt-agent-lang) (Cursor, Windsurf,
 VSCodium) for highlighting and IntelliSense.
 
+### Runtime dependencies
+
+NT is not dependency-free. The engine exact-pins the official MCP client for
+protocol support, Ajv for JSON Schema validation, and Undici for guarded HTTP
+transport behavior. Your package manager installs them with the CLI.
+
 ## Quick start
 
 ```bash
@@ -25,8 +31,10 @@ nt run age -m "bought the first iPhone at 22"
 ```
 
 `nt setup --template full` writes a bigger starter instead: the same agent wired
-to a sandbox, a tool, a skill, a subagent, and a workflow. Existing files are
-never overwritten unless you pass `--force`.
+to a sandbox, a shell tool, a zero-dependency local MCP echo server, a skill, a
+subagent, and a workflow. Existing files are never overwritten unless you pass
+`--force`; the CLI prints the MCP trust and diagnostic commands needed before
+the first run.
 
 ## Example
 
@@ -59,13 +67,14 @@ Full guides and reference live in the docs (`apps/docs`, run with
 `pnpm docs:dev`):
 
 - **Get started** — introduction, installation, your first agent
-- **Guides** — agents, tools, skills, sandboxes, subagents, workflows, providers,
+- **Guides** — agents, tools, MCP servers, skills, sandboxes, subagents, workflows, providers,
   the audit log
 - **Reference** — the `.nt` syntax, the full API reference, and CLI commands
 
 ## Development
 
-A pnpm monorepo with **no build step** — Node runs the TypeScript directly.
+A pnpm monorepo whose published engine and CLI are compiled with TypeScript.
+Development tests use Node's type stripping; `pnpm build` produces package artifacts.
 
 ```
 packages/engine     @age.nt/engine — the language + runtime

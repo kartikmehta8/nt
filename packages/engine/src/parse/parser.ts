@@ -2,9 +2,10 @@
  * @file The indentation-based parser for `.nt` source.
  *
  * Turns a file into top-level declaration `Block`s (`import`, `config`, `agent`,
- * `subagent`, `sandbox`, `tool`, `skill`, `workflow`, `provider`), recursively
- * parsing maps, lists, block scalars, and scalars. `parseNt` is the entry point;
- * the `Parser` class is internal.
+ * `subagent`, `sandbox`, `tool`, `mcp`, `skill`, `workflow`, `provider`),
+ * recursively parsing maps, lists, block scalars, and scalars. It remains syntax
+ * only: coercion, cross-references, trust, credentials, and network activity
+ * belong to later phases. `parseNt` is the entry point.
  */
 
 import { MAX_PARSE_DEPTH } from "#constants";
@@ -17,6 +18,7 @@ const KNOWN_KINDS: BlockKind[] = [
   "import",
   "config",
   "provider",
+  "mcp",
   "agent",
   "subagent",
   "sandbox",
@@ -199,6 +201,7 @@ class Parser {
 }
 
 /**
+ * Returns the content trimmed to a short, single-line snippet so full file contents never land in errors.
  * @param content A source line to quote back in a diagnostic.
  * @returns The content trimmed to a short, single-line snippet so full file contents never land in errors.
  */
@@ -208,6 +211,7 @@ function snippet(content: string): string {
 }
 
 /**
+ * Determines whether plain map.
  * @param value A parsed value to test.
  * @returns Whether the value is a plain key/value map (not a list, scalar, or env ref).
  */
@@ -221,6 +225,7 @@ function isPlainMap(value: NtValue): value is Record<string, NtValue> {
 }
 
 /**
+ * Parses nt into its validated internal representation.
  * @param text Full `.nt` source text.
  * @param file The originating file path, used in diagnostics.
  * @returns The top-level declaration blocks found in the document.

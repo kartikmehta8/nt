@@ -1,7 +1,7 @@
 # @age.nt/nt
 
 **NT is a small declarative language for building AI agents.** You describe your
-models, agents, subagents, sandboxes, tools, skills and workflows in one clean
+models, agents, subagents, sandboxes, tools, MCP servers, skills and workflows in one clean
 `.nt` file, and one command brings the whole ecosystem up against a real
 language model — no glue code.
 
@@ -16,13 +16,16 @@ language model — no glue code.
 npm install -g @age.nt/nt
 ```
 
-Requires **Node ≥ 22.18** (NT runs its TypeScript engine directly via native type
-stripping — there is no build step). To actually run an agent, set a provider
-key:
+Requires **Node ≥ 22.18**. Published packages contain compiled JavaScript. To
+actually run an agent, set a provider key:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
+
+The CLI depends on `@age.nt/engine`. The engine is not dependency-free: it uses
+the exact-pinned official MCP client, Ajv, and Undici at runtime. npm installs
+these automatically with the CLI.
 
 ## Quick start
 
@@ -31,7 +34,7 @@ Let `nt` write a working project for you:
 ```bash
 mkdir my-agent && cd my-agent
 nt setup                 # writes age.nt + config.nt, then checks them
-nt setup --template full # or: a sandbox, tool, skill, subagent and workflow too
+nt setup --template full # or: sandbox, local MCP, tools, skill, helper and workflow
 ```
 
 Existing files are never overwritten — they are reported and left alone unless
@@ -79,9 +82,20 @@ nt chat age
 | `nt run <name>`  | Run one agent, subagent, or workflow.                    |
 | `nt chat <name>` | Chat with an agent, back and forth.                      |
 | `nt audit`       | Show where tool calls are logged, and the recent ones.   |
+| `nt mcp …`       | Trust, authorize, inspect, diagnose, and list MCP tools. |
 
 `setup`, `validate`, `list`, `graph`, and `audit` work offline; `up`, `run`, and
 `chat` call the model and need a provider key.
+
+MCP online commands connect only after `nt mcp trust SERVER` persists the exact
+reviewed definition. Use `nt mcp list`, `inspect`, and `doctor` for discovery;
+`auth`/`logout` manage OAuth. MCP invocation approval defaults to required and
+is separate from server trust.
+
+`nt mcp doctor [SERVER]` reports schema, trust, endpoint, connection,
+authentication, capabilities, catalog, selection, schema compatibility, and
+shutdown independently. Failed prerequisites leave dependent checks marked
+skipped, and JSON failures include stable `MCP_*` codes.
 
 While `up`, `run`, and `chat` wait on the model, an animated thinking line
 (`✻ Pondering… (3s)`) shows in the terminal. It clears the moment the reply
@@ -100,21 +114,25 @@ terminal that cannot ask always refuses, never silently runs.
 
 ## Options
 
-| Option               | What it does                                                          |
-| -------------------- | --------------------------------------------------------------------- |
-| `-f, --file FILE`    | Entry `.nt` file to load; its imports are followed. Default `age.nt`. |
-| `-d, --dir FOLDER`   | Load every `.nt` file in a folder instead.                            |
-| `-i, --input JSON`   | Input to pass, as JSON (validated against the agent's `input`).       |
-| `-m, --message TEXT` | Send a quick plain-text message instead of JSON.                      |
-| `--run NAME`         | With `up`, run this agent or workflow after bring-up.                 |
-| `-n, --tail N`       | With `audit`, how many recent tool calls to show (default 20).        |
-| `--json`             | With `audit`, print the raw JSONL entries only.                       |
-| `-t, --template`     | With `setup`, the starter to write: `minimal` (default) or `full`.    |
-| `--force`            | With `setup`, replace files that already exist.                       |
-| `--show-tool-calls`  | With `up`/`run`/`chat`, name each tool call and delegation live.      |
-| `-y, --yes`          | Pre-approve tools declared with `confirm: true` instead of asking.    |
-| `-v, --verbose`      | Print the agent / tool / delegation trace.                            |
-| `-h, --help`         | Show help.                                                            |
+| Option                    | What it does                                                          |
+| ------------------------- | --------------------------------------------------------------------- |
+| `-f, --file FILE`         | Entry `.nt` file to load; its imports are followed. Default `age.nt`. |
+| `-d, --dir FOLDER`        | Load every `.nt` file in a folder instead.                            |
+| `-i, --input JSON`        | Input to pass, as JSON (validated against the agent's `input`).       |
+| `-m, --message TEXT`      | Send a quick plain-text message instead of JSON.                      |
+| `--run NAME`              | With `up`, run this agent or workflow after bring-up.                 |
+| `-n, --tail N`            | With `audit`, how many recent tool calls to show (default 20).        |
+| `--json`                  | Machine-readable `audit` or MCP list/inspect/doctor output.           |
+| `-t, --template`          | With `setup`, the starter to write: `minimal` (default) or `full`.    |
+| `--force`                 | With `setup`, replace files that already exist.                       |
+| `--show-tool-calls`       | With `up`/`run`/`chat`, name each tool call and delegation live.      |
+| `-y, --yes`               | Pre-approve gated NT and MCP tool calls; never bypass trust or OAuth. |
+| `--allow-outside-imports` | Permit imported files outside the project directory.                  |
+| `-v, --verbose`           | Print the agent / tool / delegation trace.                            |
+| `--all`                   | With `mcp list`, include unselected advertised tools.                 |
+| `--fingerprint HASH`      | Expected fingerprint for non-interactive MCP trust.                   |
+| `--non-interactive`       | Disable trust prompts; requires `--fingerprint`.                      |
+| `-h, --help`              | Show help.                                                            |
 
 ## What you can declare
 
@@ -125,6 +143,8 @@ An `.nt` file is made of small, readable blocks:
 - **`tool`** — a custom power: a `shell` command or an `http` call, with
   `{placeholders}` filled from model input. Built-ins: `fs_read`, `fs_write`,
   `fs_list`, `bash`.
+- **`mcp`** — a trusted stdio or Streamable HTTP server whose explicitly
+  selected tools can be attached as `server.tool` references.
 - **`skill`** — reusable instructions loaded into an agent's prompt.
 - **`sandbox`** — a safe `virtual` (in-memory) workspace, or a guarded `local`
   one for real host access.

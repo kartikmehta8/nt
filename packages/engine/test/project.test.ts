@@ -1,7 +1,8 @@
 /**
  * @file Project-level validation tests: secret-hygiene warnings, HTTPS
  * enforcement, openai-completions capability errors, workflow `into` guards,
- * and http-tool URL policy.
+ * and HTTP-tool URL policy. The suite crosses parser, schema, engine, and
+ * sandbox boundaries to ensure unsafe declarations fail before side effects.
  */
 
 import assert from "node:assert/strict";
@@ -222,4 +223,17 @@ test("undeclared workflow input cannot preseed declared outputs", async () => {
   const engine = new Engine(build("workflow w:\n  output:\n    verdict: string\n"));
   const result = await engine.runWorkflow("w", { verdict: "spoofed" });
   assert.deepEqual(result.output, {});
+});
+
+test("closed engines reject new runtime and MCP lifecycle work", async () => {
+  const loaded = build("agent a\n  model: anthropic/test\n");
+  const engine = new Engine(loaded);
+  await Promise.all([engine.close(), engine.close()]);
+  assert.throws(() => engine.bringUp(), /engine is closed/);
+  assert.throws(() => engine.createChat("a"), /engine is closed/);
+  assert.throws(
+    () => engine.mcpTrustInfo("missing"),
+    (error: unknown) =>
+      typeof error === "object" && error !== null && "code" in error && error.code === "MCP_CLOSED",
+  );
 });

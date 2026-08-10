@@ -20,7 +20,7 @@
     ["'", "'"]
   ],
   "indentationRules": {
-    "increaseIndentPattern": "(:\\s*$)|(:\\s*[|>]-?\\s*$)|^(agent|subagent|sandbox|tool|skill|workflow|provider|config)\\b.*$",
+    "increaseIndentPattern": "(:\\s*$)|(:\\s*[|>]-?\\s*$)|^(agent|subagent|sandbox|tool|skill|workflow|provider|mcp|config)\\b.*$",
     "decreaseIndentPattern": "^\\s+\\S"
   }
 }

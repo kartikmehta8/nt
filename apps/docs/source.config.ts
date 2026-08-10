@@ -1,3 +1,11 @@
+/**
+ * @file Fumadocs MDX collection and syntax-highlighting configuration.
+ *
+ * Indexes `content/docs` as the typed documentation collection and deliberately
+ * uses the same GitHub light code theme for both renderer slots because the
+ * product site does not expose dark mode.
+ */
+
 import { defineConfig, defineDocs } from "fumadocs-mdx/config";
 
 export const docs = defineDocs({
@@ -6,7 +14,6 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    // Shiki themes — light-only site, so both slots use a light theme.
     rehypeCodeOptions: {
       themes: {
         light: "github-light",

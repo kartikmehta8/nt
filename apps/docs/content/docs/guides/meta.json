@@ -3,6 +3,7 @@
   "pages": [
     "agents",
     "tools",
+    "mcp",
     "skills",
     "sandboxes",
     "subagents",

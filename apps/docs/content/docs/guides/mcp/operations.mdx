@@ -1,0 +1,97 @@
+---
+title: Operate and troubleshoot
+description: Inspect MCP catalogs, run diagnostics, automate JSON output, and close every connection cleanly.
+---
+
+<img src="/operate-and-troubleshoot.png" alt="Operate and troubleshoot" className="nt-banner" />
+
+MCP discovery is live and intentionally separate from offline project
+validation. Use the commands in this section after validating and trusting a
+server definition.
+
+## Inspect the live catalog
+
+```bash
+nt mcp list [SERVER] [--all] [--json]
+nt mcp inspect SERVER TOOL [--json]
+```
+
+`list` connects to the requested server, or every declared server, and shows
+connection state, transport, negotiated protocol, selected tools, approval
+policies, remote names, and provider-safe names. `--all` also shows advertised
+tools that the declaration did not select.
+
+`inspect` prints one tool's bounded input/output schemas and server annotations.
+The tool operand is the remote name, including any dots in that name. Treat the
+description and annotations as untrusted metadata.
+
+`--json` emits a versioned object with `schema_version: 1`. If a live server
+fails, the command sets exit code 1; MCP exceptions are represented by a stable
+`MCP_*` code and a human-readable message.
+
+## Run doctor
+
+```bash
+nt mcp doctor [SERVER] [--json]
+```
+
+Doctor reports ten ordered checks:
+
+1. declaration schema and cross-references;
+2. persisted trust fingerprint;
+3. executable or URL endpoint;
+4. transport connection and protocol negotiation;
+5. authentication;
+6. advertised tool capability;
+7. catalog discovery;
+8. selected-tool presence;
+9. schema compatibility;
+10. clean transport shutdown.
+
+A failed prerequisite marks dependent checks as skipped, so the report keeps
+the original cause visible. Doctor uses a fresh connection and closes it before
+returning. Its exit code is 1 unless every check passes.
+
+## Common failures
+
+| Symptom or code          | What it means                                      | What to do                                                             |
+| ------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------- |
+| `MCP_NOT_TRUSTED`        | No trust record matches this project/server.       | Run `nt mcp trust SERVER` and review the displayed boundary.           |
+| `MCP_TRUST_CHANGED`      | A security-relevant field changed.                 | Review the new definition; trust it again only if expected.            |
+| `MCP_AUTH_REQUIRED`      | The server needs credentials.                      | Set the bearer-token environment variable or run `nt mcp auth SERVER`. |
+| `MCP_INSUFFICIENT_SCOPE` | OAuth scopes do not cover the request.             | Update reviewed scopes and authorize the bounded step-up.              |
+| `MCP_CONNECTION_FAILED`  | The process, endpoint, DNS, or negotiation failed. | Use `doctor`; verify the pinned executable, URL, and network policy.   |
+| `MCP_CONNECT_TIMEOUT`    | Connection setup exceeded its limit.               | Check server health before raising `connect_timeout_ms`.               |
+| `MCP_CALL_TIMEOUT`       | A tool call exceeded its effective limit.          | Check the operation before raising `call_timeout_ms`.                  |
+| `MCP_TOOL_NOT_FOUND`     | A selected or requested tool is absent.            | Compare the declaration with `nt mcp list SERVER --all`.               |
+| `MCP_SCHEMA_INVALID`     | An advertised schema is unsupported or unsafe.     | Upgrade or correct the server; do not bypass validation.               |
+
+For stdio failures, confirm that the executable is available on `PATH` and its
+declared `cwd` exists. For HTTP failures, remember that internal destinations,
+redirects to them, and unsafe DNS results are blocked unless
+`allow_internal: true` was reviewed and trusted. Legacy HTTP+SSE also requires
+`allow_legacy_sse: true`.
+
+## Engine lifecycle
+
+The CLI tracks open engines and closes them on normal completion and termination
+signals. Embedders own the same lifecycle explicitly:
+
+```ts
+const engine = Engine.load("age.nt");
+try {
+  const servers = await engine.listMcp();
+  const result = await engine.runAgent("researcher", {
+    message: "Find the repository",
+  });
+} finally {
+  await engine.close();
+}
+```
+
+`close()` is idempotent. It closes MCP clients, HTTP sessions, stdio child
+processes, and manager state; call it in `finally` even after a failed run. The
+engine also exposes `mcpTrustInfo`, `trustMcp`, `untrustMcp`, `inspectMcp`,
+`doctorMcp`, `authorizeMcp`, and `logoutMcp` for applications that need to build
+their own interface. See the [API reference](/docs/reference/api) for signatures
+and return shapes.

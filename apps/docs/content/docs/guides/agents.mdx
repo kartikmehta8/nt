@@ -9,6 +9,9 @@ An agent is the main worker in NT. It reads your request, thinks, uses any tools
 you gave it, and replies. This guide walks through every setting an agent can
 have.
 
+Attach an MCP tool with a stable `server.remote-tool` entry in `tools:`. The
+server must independently select it; see the [MCP guide](/docs/guides/mcp).
+
 ## The basics
 
 The smallest useful agent needs a name, a model, and instructions:
@@ -52,13 +55,16 @@ Here is what each one does:
 | `description`  | A short note about the agent. Shown when you list your project.                                    |
 | `model`        | Which AI to use, written as `provider/model-name`.                                                 |
 | `thinking`     | How hard it thinks. From least to most: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. |
+| `max_tokens`   | Maximum output-token budget for one model reply.                                                   |
 | `sandbox`      | The workspace it can read and write files in. See [Sandboxes](/docs/guides/sandboxes).             |
+| `cwd`          | Override the selected sandbox's working directory for this agent.                                  |
 | `tools`        | Extra powers it can use. See [Tools](/docs/guides/tools).                                          |
 | `skills`       | Reusable instructions to load. See [Skills](/docs/guides/skills).                                  |
 | `subagents`    | Helper agents it can hand work to. See [Subagents](/docs/guides/subagents).                        |
 | `instructions` | What you want it to do, in plain words.                                                            |
 | `input`        | What you will give it.                                                                             |
 | `output`       | What you want back.                                                                                |
+| `message`      | Default message used when a run supplies no input.                                                 |
 
 Anything you leave out falls back to the [defaults in your config](/docs/entry-and-config).
 
@@ -87,8 +93,8 @@ output:
   reason: string
 ```
 
-The common types are `string` (text), `number`, `boolean` (true or false), and
-`object`.
+The available types are `string` (text), `number`, `boolean` (true or false),
+`object`, and `array`. Array fields contain strings.
 
 When you set an `output`, NT makes the model reply in exactly that shape, and you
 get clean data back instead of a paragraph:

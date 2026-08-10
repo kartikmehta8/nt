@@ -1,16 +1,17 @@
 /**
  * @file Builds the model-facing tool list an agent is offered each turn.
  *
- * Combines the built-in tools (fs_read, fs_write, fs_list, bash), the agent's
- * declared custom tools (as JSON schemas), and one `delegate_to_<name>` tool per
- * wired subagent — so the model can act, read and write the sandbox, and
- * delegate.
+ * Combines built-in tools, source-declared custom tools as JSON schemas, and one
+ * `delegate_to_<name>` tool per wired subagent. Selected MCP definitions are
+ * discovered asynchronously and merged later by `buildRuntime`, keeping this
+ * source-only builder synchronous and validation offline.
  */
 
 import { DELEGATE_PREFIX, isBuiltinTool, type BuiltinToolName } from "#constants";
 import { buildInputSchema } from "#io";
 import type { LlmToolDef } from "#provider";
 import type { AgentDef, Project } from "#types";
+import { parseMcpReference } from "#mcp/names";
 
 const OBJECT = (
   properties: Record<string, unknown>,
@@ -51,6 +52,7 @@ const BUILTIN_SCHEMAS: Record<BuiltinToolName, LlmToolDef> = {
 export { DELEGATE_PREFIX };
 
 /**
+ * Builds the provider-facing built-in and custom tool definitions granted to an agent.
  * @param project The project the agent belongs to.
  * @param agent The agent whose tools should be exposed.
  * @returns Model-facing tool definitions for built-ins, custom tools, and subagent delegation.
@@ -62,7 +64,9 @@ export function buildToolDefs(project: Project, agent: AgentDef): LlmToolDef[] {
       defs.push(BUILTIN_SCHEMAS[name]);
       continue;
     }
-    const tool = project.tools.get(name)!;
+    if (parseMcpReference(name) && !project.tools.has(name)) continue;
+    const tool = project.tools.get(name);
+    if (!tool) continue;
     defs.push({
       name: tool.name,
       description: tool.description,
@@ -70,7 +74,8 @@ export function buildToolDefs(project: Project, agent: AgentDef): LlmToolDef[] {
     });
   }
   for (const subName of agent.subagents) {
-    const sub = project.subagents.get(subName)!;
+    const sub = project.subagents.get(subName);
+    if (!sub) continue;
     defs.push({
       name: `${DELEGATE_PREFIX}${subName}`,
       description: `Delegate a task to the '${subName}' subagent. ${sub.description}`.trim(),

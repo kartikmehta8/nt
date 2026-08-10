@@ -2,14 +2,14 @@
  * @file Language-model providers, selected by the `provider/model-id` prefix.
  *
  * `ProviderRegistry` resolves a model string to a declared or built-in provider
- * (anthropic, openai), reports credential status for `bringUp`, and issues
- * completions — translating the engine's normalized request into the Anthropic
- * Messages API (adaptive thinking, effort, structured output) or an
- * OpenAI-compatible chat endpoint, then normalizing the response back.
+ * (Anthropic or OpenAI-compatible), reports credential status for `bringUp`,
+ * checks tool-capability compatibility, and delegates HTTP translation to
+ * `provider-http.ts`. This file owns the normalized provider-neutral request,
+ * response, content, and tool-definition shapes.
  */
 
-import { MAX_ERROR_BODY_CHARS, PROVIDER_TIMEOUT_MS } from "#constants";
 import { NtError } from "#errors";
+import { callAnthropic, callOpenAi } from "#provider-http";
 import type { ProviderDef, ThinkingLevel } from "#types";
 
 export interface LlmToolDef {
@@ -54,15 +54,6 @@ export interface CredentialStatus {
   hasKey: boolean;
 }
 
-const EFFORT: Record<Exclude<ThinkingLevel, "off">, string> = {
-  minimal: "low",
-  low: "low",
-  medium: "medium",
-  high: "high",
-  xhigh: "xhigh",
-  max: "max",
-};
-
 const ANTHROPIC = (): ProviderDef => ({
   name: "anthropic",
   api: "anthropic",
@@ -87,13 +78,16 @@ export class ProviderRegistry {
   private providers = new Map<string, ProviderDef>();
 
   /**
+   * Registers one provider definition by name for later model resolution.
    * @param def A declared provider to make available for model resolution.
+   * @returns Nothing; later registrations with the same name replace it.
    */
   register(def: ProviderDef): void {
     this.providers.set(def.name, def);
   }
 
   /**
+   * Returns the declared provider, or a built-in definition for anthropic/openai.
    * @param id A provider identifier.
    * @returns The declared provider, or a built-in definition for anthropic/openai.
    */
@@ -106,6 +100,7 @@ export class ProviderRegistry {
   }
 
   /**
+   * Returns the provider and whether a credential is currently available for it.
    * @param id A provider identifier.
    * @returns The provider and whether a credential is currently available for it.
    */
@@ -115,6 +110,7 @@ export class ProviderRegistry {
   }
 
   /**
+   * Returns the model response, normalized across provider APIs.
    * @param req The model request to execute.
    * @returns The model response, normalized across provider APIs.
    */
@@ -136,6 +132,7 @@ export class ProviderRegistry {
 }
 
 /**
+ * Returns the provider's API key from a literal or its environment variable, or null.
  * @param def A provider definition.
  * @returns The provider's API key from a literal or its environment variable, or null.
  */
@@ -143,128 +140,4 @@ function apiKeyFor(def: ProviderDef): string | null {
   if (def.apiKey) return def.apiKey;
   if (def.apiKeyEnv) return process.env[def.apiKeyEnv] ?? null;
   return null;
-}
-
-/**
- * Reads the body as a stream and stops at a byte cap, so a hostile endpoint
- * cannot force the process to buffer an arbitrarily large error response.
- *
- * @param res A failed provider response.
- * @returns The response body truncated to a size safe to embed in an error message.
- */
-async function errorBody(res: Response): Promise<string> {
-  if (!res.body) return "";
-  const maxBytes = MAX_ERROR_BODY_CHARS * 4;
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  try {
-    while (total < maxBytes) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      total += value.length;
-    }
-  } catch {
-    return "";
-  } finally {
-    await reader.cancel().catch(() => {});
-  }
-  const text = Buffer.concat(chunks).toString("utf8");
-  return text.length > MAX_ERROR_BODY_CHARS ? text.slice(0, MAX_ERROR_BODY_CHARS) + "…" : text;
-}
-
-/**
- * @returns The response from Anthropic's Messages API, normalized.
- */
-async function callAnthropic(
-  def: ProviderDef,
-  key: string,
-  modelId: string,
-  req: LlmRequest,
-): Promise<LlmResponse> {
-  const body: Record<string, unknown> = {
-    model: modelId,
-    max_tokens: req.maxTokens,
-    messages: req.messages,
-  };
-  if (req.system) body.system = req.system;
-  if (req.tools && req.tools.length) body.tools = req.tools;
-
-  const outputConfig: Record<string, unknown> = {};
-  if (req.thinking === "off") body.thinking = { type: "disabled" };
-  else if (req.thinking) {
-    body.thinking = { type: "adaptive" };
-    outputConfig.effort = EFFORT[req.thinking];
-  }
-  if (req.outputSchema) outputConfig.format = { type: "json_schema", schema: req.outputSchema };
-  if (Object.keys(outputConfig).length) body.output_config = outputConfig;
-
-  const res = await fetch(`${def.baseUrl ?? "https://api.anthropic.com"}/v1/messages`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-      ...def.headers,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
-  });
-  if (!res.ok)
-    throw new NtError(`anthropic API error ${res.status}: ${await errorBody(res)}`, null);
-
-  const json = (await res.json()) as {
-    content: ContentBlock[];
-    stop_reason: string;
-    usage?: { input_tokens?: number; output_tokens?: number };
-  };
-  const content = json.content ?? [];
-  return {
-    content,
-    stopReason: json.stop_reason,
-    text: content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text ?? "")
-      .join(""),
-    usage: { input: json.usage?.input_tokens ?? 0, output: json.usage?.output_tokens ?? 0 },
-  };
-}
-
-/**
- * @returns The response from an OpenAI-compatible chat completions endpoint, normalized.
- */
-async function callOpenAi(
-  def: ProviderDef,
-  key: string,
-  modelId: string,
-  req: LlmRequest,
-): Promise<LlmResponse> {
-  const messages: unknown[] = [];
-  if (req.system) messages.push({ role: "system", content: req.system });
-  for (const m of req.messages)
-    messages.push({
-      role: m.role,
-      content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-    });
-
-  const res = await fetch(`${def.baseUrl ?? "https://api.openai.com/v1"}/chat/completions`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${key}`, ...def.headers },
-    body: JSON.stringify({ model: modelId, messages, max_tokens: req.maxTokens }),
-    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new NtError(`openai API error ${res.status}: ${await errorBody(res)}`, null);
-
-  const json = (await res.json()) as {
-    choices: { message: { content: string } }[];
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
-  };
-  const text = json.choices?.[0]?.message?.content ?? "";
-  return {
-    content: [{ type: "text", text }],
-    stopReason: "end_turn",
-    text,
-    usage: { input: json.usage?.prompt_tokens ?? 0, output: json.usage?.completion_tokens ?? 0 },
-  };
 }

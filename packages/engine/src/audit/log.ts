@@ -5,8 +5,9 @@
  * per-day file in the configured folder (`~/.nt/audit` by default), creating the
  * folder on first write with owner-only permissions. Lines are only ever
  * appended, never rewritten, and a failing write degrades to a single warning so
- * logging can never break a run. `readAuditEntries` reads the most recent
- * entries back for `nt audit`.
+ * logging can never break a run. MCP entries add server, remote-tool, transport,
+ * approval, and negotiated protocol fields without changing older JSONL
+ * readers. `readAuditEntries` returns bounded recent entries for `nt audit`.
  */
 
 import * as fs from "node:fs";
@@ -25,7 +26,7 @@ import {
 } from "#constants";
 import type { Project } from "#types";
 
-export type AuditToolKind = "builtin" | "custom" | "delegate" | "unknown";
+export type AuditToolKind = "builtin" | "custom" | "delegate" | "mcp" | "unknown";
 
 export interface AuditRecord {
   run: string;
@@ -37,6 +38,11 @@ export interface AuditRecord {
   ok: boolean;
   durationMs: number;
   output: string;
+  server?: string;
+  remoteTool?: string;
+  transport?: string;
+  approval?: string;
+  protocolVersion?: string;
 }
 
 export interface AuditEntry {
@@ -50,9 +56,15 @@ export interface AuditEntry {
   ok: boolean;
   duration_ms: number;
   output: string;
+  server?: string;
+  remote_tool?: string;
+  transport?: string;
+  approval?: string;
+  protocol_version?: string;
 }
 
 /**
+ * Returns which family of tool the name refers to.
  * @param project The project the tool belongs to.
  * @param name The invoked tool name.
  * @returns Which family of tool the name refers to.
@@ -63,18 +75,29 @@ export function auditToolKind(project: Project, name: string): AuditToolKind {
   return project.tools.has(name) ? "custom" : "unknown";
 }
 
+/**
+ * Append-only, daily JSONL audit writer that redacts each structured record
+ * before the value can cross the persistence boundary.
+ */
 export class AuditLog {
   readonly dir: string;
   private redactor: Redactor;
   private ready = false;
   private broken = false;
 
+  /**
+   * Creates a lazy writer; directories and files are opened on first append.
+   *
+   * @param dir Directory that receives date-partitioned audit files.
+   * @param redactor Redaction policy applied before anything reaches disk.
+   */
   constructor(dir: string, redactor: Redactor = createRedactor()) {
     this.dir = dir;
     this.redactor = redactor;
   }
 
   /**
+   * Returns the absolute path of the JSONL file that day's entries append to.
    * @param at The moment the entry belongs to; the log rotates once per UTC day.
    * @returns The absolute path of the JSONL file that day's entries append to.
    */
@@ -84,6 +107,8 @@ export class AuditLog {
   }
 
   /**
+   * Redacts and appends one completed tool call to the current daily audit log.
+   *
    * @param record One completed tool call; the model-controlled tool name is
    * redacted like input and output.
    * @returns The entry that was appended, or null when logging is unavailable.
@@ -102,11 +127,17 @@ export class AuditLog {
       ok: record.ok,
       duration_ms: record.durationMs,
       output: this.redactor.text(record.output, AUDIT_MAX_OUTPUT_CHARS, redacted.dropped),
+      ...(record.server ? { server: record.server } : {}),
+      ...(record.remoteTool ? { remote_tool: record.remoteTool } : {}),
+      ...(record.transport ? { transport: record.transport } : {}),
+      ...(record.approval ? { approval: record.approval } : {}),
+      ...(record.protocolVersion ? { protocol_version: record.protocolVersion } : {}),
     };
     return this.append(entry) ? entry : null;
   }
 
   /**
+   * Returns whether the line reached the log.
    * @param entry The redacted entry to append.
    * @returns Whether the line reached the log.
    */
@@ -130,6 +161,7 @@ export class AuditLog {
 }
 
 /**
+ * Starts audit log and prepares it for use.
  * @param project The loaded project whose `config.audit` decides the destination.
  * @returns A ready audit log, or null when logging is turned off.
  */
@@ -140,6 +172,7 @@ export function openAuditLog(project: Project): AuditLog | null {
 }
 
 /**
+ * Returns the audit files in the folder, oldest first.
  * @param dir The audit folder to read.
  * @returns The audit files in the folder, oldest first.
  */
@@ -156,6 +189,7 @@ export function auditFiles(dir: string): string[] {
 }
 
 /**
+ * Reads only the bounded trailing region needed for recent audit lines.
  * @param file The audit file to tail.
  * @param maxLines The most lines the caller will consume.
  * @returns The file's trailing lines, read as one bounded region from the end.
@@ -177,6 +211,7 @@ function readTailLines(file: string, maxLines: number): string[] {
 }
 
 /**
+ * Reads recent valid JSONL entries across daily audit files in chronological order.
  * @param dir The audit folder to read.
  * @param limit The most entries to return.
  * @returns The most recent entries, oldest first; unparseable lines are skipped.

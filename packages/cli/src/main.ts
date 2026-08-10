@@ -2,9 +2,10 @@
  * @file CLI entry point: parse arguments and dispatch to a command.
  *
  * `main` routes the first positional argument to the matching command handler
- * (`setup`, `validate`, `list`, `graph`, `up`, `run`, `chat`, `audit`),
- * renders `NtError`s as `✗ file:line: message`, and sets the process exit code.
- * Invoked by `bin/nt.mjs`; package builds compile this module to `dist/main.js`.
+ * (`setup`, `validate`, `list`, `graph`, `up`, `run`, `chat`, `audit`, `mcp`),
+ * renders located and operational failures once, and owns CLI usage exit codes.
+ * Command modules own their resource cleanup and versioned JSON output. Invoked
+ * by `bin/nt.mjs`; published packages execute its compiled `dist/main.js`.
  */
 
 import { NtError } from "@age.nt/engine";
@@ -14,9 +15,12 @@ import { cmdChat, cmdRun, cmdUp } from "#commands";
 import { out, red } from "#format";
 import { cmdGraph, cmdList, cmdValidate } from "#inspect";
 import { cmdSetup } from "#setup";
+import { cmdMcp } from "#mcp/commands";
 
 /**
+ * Runs the command-line entry point and maps failures to stable exit behavior.
  * @param argv The process arguments after the node binary and script.
+ * @returns A promise that settles after dispatch, diagnostics, and cleanup.
  */
 export async function main(argv: string[]): Promise<void> {
   try {
@@ -50,6 +54,9 @@ export async function main(argv: string[]): Promise<void> {
         break;
       case "audit":
         cmdAudit(args);
+        break;
+      case "mcp":
+        await cmdMcp(args);
         break;
       default:
         console.error(red(`unknown command '${command}'`));

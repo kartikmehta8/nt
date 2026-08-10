@@ -2,13 +2,13 @@
  * @file Strips credentials out of anything bound for the audit log.
  *
  * Three layers, applied to every logged value: known secret literals (the
- * project's provider keys, declared sandbox env values, and the host's
- * secret-looking environment variables) are scrubbed wherever they appear in
- * text, since a model can route them through a command or URL; values under a
+ * project's provider keys, MCP bearer/header/env values, declared sandbox env,
+ * and host secret-looking variables) are scrubbed wherever they appear in text,
+ * since a model can route them through a command or URL; values under a
  * secret-looking key name are dropped whole; and values shaped like a token are
  * matched by pattern. Anything dropped from a call's input is also scrubbed from
  * that call's output, so a tool cannot echo a secret back into the log. Long
- * strings are then truncated so one tool call cannot bloat the log.
+ * strings are then truncated so one tool call cannot bloat the log or JSON CLI output.
  */
 
 import {
@@ -18,6 +18,7 @@ import {
   AUDIT_REDACTED,
 } from "#constants";
 import type { Project } from "#types";
+import { isEnvRef } from "#schema/coerce";
 
 export interface RedactedInput {
   input: Record<string, unknown>;
@@ -43,6 +44,7 @@ const SECRET_VALUE_PATTERNS: RegExp[] = [
 ];
 
 /**
+ * Returns whether the name suggests the value is a credential.
  * @param name An environment-variable or field name.
  * @returns Whether the name suggests the value is a credential.
  */
@@ -51,6 +53,7 @@ export function looksSecretName(name: string): boolean {
 }
 
 /**
+ * Escapes re for safe use in its target syntax.
  * @param s A string to embed literally in a regular expression.
  * @returns The string with regex metacharacters escaped.
  */
@@ -59,6 +62,7 @@ function escapeRe(s: string): string {
 }
 
 /**
+ * Extracts secrets from the supplied source data.
  * @param project The loaded project whose declared credentials should never be logged.
  * @returns The literal secret values worth scrubbing from logged text.
  */
@@ -75,11 +79,19 @@ export function collectSecrets(project: Project): string[] {
   }
   for (const sandbox of project.sandboxes.values())
     for (const [name, value] of Object.entries(sandbox.env)) if (looksSecretName(name)) add(value);
+  for (const server of project.mcpServers.values()) {
+    if (server.auth.type === "bearer") add(process.env[server.auth.tokenEnv]);
+    for (const value of [...Object.values(server.env), ...Object.values(server.headers)]) {
+      if (isEnvRef(value)) add(process.env[value.__env]);
+      else if (typeof value === "string") add(value);
+    }
+  }
   for (const [name, value] of Object.entries(process.env)) if (looksSecretName(name)) add(value);
   return [...secrets];
 }
 
 /**
+ * Builds a bounded recursive redactor from known literal and token-shaped secrets.
  * @param secrets Literal secret values to scrub wherever they appear.
  * @returns A redactor that sanitizes strings, arbitrary values, and tool inputs.
  */

@@ -16,8 +16,10 @@ export const BUILTIN_TOOL_NAMES = ["fs_read", "fs_write", "fs_list", "bash"] as 
 export type BuiltinToolName = (typeof BUILTIN_TOOL_NAMES)[number];
 
 export const DELEGATE_PREFIX = "delegate_to_";
+export const MCP_TOOL_PREFIX = "mcp__";
 
 /**
+ * Determines whether builtin tool.
  * @param name A candidate tool name.
  * @returns Whether the name refers to a built-in tool.
  */

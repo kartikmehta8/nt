@@ -1,5 +1,14 @@
 #!/usr/bin/env node
-import { fileURLToPath } from "node:url";
+/**
+ * @file Published `nt` executable bootstrap.
+ *
+ * Refuses unsupported Node.js versions before importing compiled CLI code,
+ * resolves `dist/main.js` relative to the installed package rather than the
+ * caller's working directory, and reports startup failures with their stack.
+ * Published installs always enter through this compiled artifact boundary.
+ */
+
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
 const MIN_NODE_MAJOR = 22;
@@ -15,7 +24,7 @@ if (major < MIN_NODE_MAJOR || (major === MIN_NODE_MAJOR && minor < MIN_NODE_MINO
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-import(join(here, "..", "dist", "main.js"))
+import(pathToFileURL(join(here, "..", "dist", "main.js")).href)
   .then((m) => m.main(process.argv.slice(2)))
   .catch((err) => {
     console.error(err?.stack || String(err));

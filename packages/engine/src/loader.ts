@@ -23,6 +23,7 @@ export interface LoadOptions {
 }
 
 /**
+ * Discovers nt files within the configured search boundary.
  * @param dir A directory to search, or a single `.nt` file.
  * @returns The sorted list of `.nt` files found.
  */
@@ -42,6 +43,7 @@ export function discoverNtFiles(dir: string): string[] {
 }
 
 /**
+ * Reads and parses one bounded NT source file exactly once.
  * @param file A `.nt` file path.
  * @returns The file's text, erroring if it is unreadable or exceeds the size cap.
  */
@@ -57,6 +59,7 @@ function readNtFile(file: string): string {
 }
 
 /**
+ * Parses file into its validated internal representation.
  * @param file A `.nt` file path.
  * @returns The parsed declaration blocks for that file.
  */
@@ -65,6 +68,7 @@ function parseFile(file: string): Block[] {
 }
 
 /**
+ * Returns the blocks that declare entities, excluding `import` statements.
  * @param blocks Parsed blocks from one file.
  * @returns The blocks that declare entities, excluding `import` statements.
  */
@@ -73,6 +77,7 @@ function declarationBlocks(blocks: Block[]): Block[] {
 }
 
 /**
+ * Removes quotes from the supplied value.
  * @param s A raw import path that may be wrapped in quotes.
  * @returns The path without surrounding quotes.
  */
@@ -83,6 +88,7 @@ function stripQuotes(s: string): string {
 }
 
 /**
+ * Returns absolute paths named by the file's `import` statements.
  * @param file The importing file, used to resolve relative paths.
  * @param blocks The importing file's parsed blocks.
  * @returns Absolute paths named by the file's `import` statements.
@@ -99,6 +105,7 @@ function importTargets(file: string, blocks: Block[]): string[] {
 }
 
 /**
+ * Determines whether inside.
  * @param root The project root directory that imports must stay within.
  * @param target An absolute import target path.
  * @returns Whether the target resolves inside the root directory tree.
@@ -109,6 +116,7 @@ function isInside(root: string, target: string): boolean {
 }
 
 /**
+ * Extracts from entry from the supplied source data.
  * @param entry The entry `.nt` file whose imports should be followed.
  * @param options Loader options, including whether imports may escape the root.
  * @returns Declaration blocks for the entry and every transitively imported file.
@@ -148,6 +156,7 @@ function collectFromEntry(entry: string, options: LoadOptions): FileBlocks[] {
 }
 
 /**
+ * Discovers, parses, assembles, and validates a project without runtime side effects.
  * @param target An entry `.nt` file (imports are followed) or a directory (globbed).
  * @param options Loader options, including whether imports may escape the root.
  * @returns The assembled project and any accumulated warnings.
@@ -170,5 +179,8 @@ export function loadProject(target: string, options: LoadOptions = {}): BuildRes
     fileBlocks = collectFromEntry(resolved, options);
   }
   if (fileBlocks.length === 0) throw new NtError(`no .nt files found in ${target}`, null);
-  return buildProject(fileBlocks);
+  const projectRoot = isDirectory
+    ? fs.realpathSync(resolved)
+    : nodePath.dirname(fs.realpathSync(resolved));
+  return buildProject(fileBlocks, projectRoot);
 }

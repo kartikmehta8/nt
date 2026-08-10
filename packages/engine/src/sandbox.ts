@@ -1,21 +1,18 @@
 /**
  * @file Sandboxes: the workspaces agents read, write, and run commands in.
  *
- * `VirtualSandbox` is an in-memory filesystem with a tiny built-in shell so
- * nothing touches the host; `LocalSandbox` runs against the real host
- * filesystem and shell and is for trusted use only — it requires the
- * `NT_ALLOW_LOCAL=1` opt-in, jails file operations to its cwd, and passes
- * commands a minimal environment so host credentials never reach
- * model-chosen code. `makeSandbox` constructs the right one from a
- * `SandboxDef`.
+ * `VirtualSandbox` provides an in-memory filesystem and a deliberately small
+ * command set, so untrusted runs cannot touch the host. `makeSandbox` selects
+ * it by default or delegates explicit local execution to the separately
+ * reviewable `LocalSandbox` security boundary.
  */
 
-import { execSync } from "node:child_process";
-import * as fs from "node:fs";
 import * as nodePath from "node:path";
 import { DEFAULT_SANDBOX_CWD } from "#constants";
-import { NtError } from "#errors";
-import type { Location, SandboxDef } from "#types";
+import { LocalSandbox } from "#sandbox-local";
+import type { SandboxDef } from "#types";
+
+export { LocalSandbox } from "#sandbox-local";
 
 export interface ExecResult {
   stdout: string;
@@ -33,6 +30,7 @@ export interface Sandbox {
 }
 
 /**
+ * Returns a successful exec result.
  * @param stdout The command output.
  * @returns A successful exec result.
  */
@@ -41,6 +39,7 @@ function ok(stdout: string): ExecResult {
 }
 
 /**
+ * Removes quotes from the supplied value.
  * @param s A token that may be wrapped in quotes.
  * @returns The token without surrounding quotes.
  */
@@ -57,6 +56,11 @@ export class VirtualSandbox implements Sandbox {
   private store = new Map<string, string>();
   private env: Record<string, string>;
 
+  /**
+   * Creates an isolated filesystem rooted at the declared virtual directory.
+   *
+   * @param def Virtual working directory and environment exposed by `env`.
+   */
   constructor(def: { cwd: string; env: Record<string, string> }) {
     this.cwd = def.cwd || DEFAULT_SANDBOX_CWD;
     this.env = def.env ?? {};
@@ -68,20 +72,44 @@ export class VirtualSandbox implements Sandbox {
     );
   }
 
+  /**
+   * Reads a file from the in-memory store.
+   *
+   * @param path Absolute or sandbox-relative file path.
+   * @returns Stored file contents.
+   */
   readFile(path: string): string {
     const key = this.resolve(path);
     if (!this.store.has(key)) throw new Error(`no such file: ${path}`);
-    return this.store.get(key)!;
+    return this.store.get(key) ?? "";
   }
 
+  /**
+   * Replaces a file in the in-memory store.
+   *
+   * @param path Absolute or sandbox-relative destination path.
+   * @param content Complete file contents to store.
+   * @returns Nothing; the new value is available synchronously.
+   */
   writeFile(path: string, content: string): void {
     this.store.set(this.resolve(path), content);
   }
 
+  /**
+   * Lists every stored file as a normalized absolute virtual path.
+   *
+   * @returns Sorted paths for deterministic callers and tests.
+   */
   listFiles(): string[] {
     return [...this.store.keys()].sort();
   }
 
+  /**
+   * Executes one of the sandbox's small, deterministic built-in commands.
+   *
+   * @param command Command line to interpret without invoking a host shell.
+   * @returns Captured output and an exit status; failures do not throw.
+   */
   exec(command: string): ExecResult {
     const [cmd, ...rest] = command.trim().split(/\s+/);
     try {
@@ -136,95 +164,8 @@ export class VirtualSandbox implements Sandbox {
   }
 }
 
-const SAFE_ENV_KEYS = ["PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "TERM", "USER", "SHELL"];
-
 /**
- * @param full An absolute path whose deepest segments may not exist yet.
- * @returns The path with every existing ancestor resolved through symlinks.
- */
-function realpathDeep(full: string): string {
-  let base = full;
-  let rest = "";
-  while (!fs.existsSync(base)) {
-    const parent = nodePath.dirname(base);
-    if (parent === base) break;
-    rest = rest ? nodePath.join(nodePath.basename(base), rest) : nodePath.basename(base);
-    base = parent;
-  }
-  return rest ? nodePath.join(fs.realpathSync(base), rest) : fs.realpathSync(base);
-}
-
-export class LocalSandbox implements Sandbox {
-  readonly kind = "local" as const;
-  readonly cwd: string;
-  private root: string;
-  private env: Record<string, string>;
-
-  constructor(def: { cwd: string; env: Record<string, string>; loc?: Location }) {
-    if (process.env.NT_ALLOW_LOCAL !== "1")
-      throw new NtError(
-        "local sandboxes run model-chosen commands on the host and are disabled by default; set NT_ALLOW_LOCAL=1 to opt in",
-        def.loc ?? null,
-      );
-    this.cwd = def.cwd || process.cwd();
-    this.env = def.env ?? {};
-    if (!fs.existsSync(this.cwd))
-      throw new NtError(`local sandbox cwd does not exist: ${this.cwd}`, def.loc ?? null);
-    this.root = fs.realpathSync(this.cwd);
-  }
-
-  private resolve(path: string): string {
-    const real = realpathDeep(nodePath.resolve(this.root, path));
-    if (real !== this.root && !real.startsWith(this.root + nodePath.sep))
-      throw new Error(`path escapes the sandbox cwd: ${path}`);
-    return real;
-  }
-
-  private execEnv(): Record<string, string> {
-    const env: Record<string, string> = {};
-    for (const key of SAFE_ENV_KEYS) {
-      const value = process.env[key];
-      if (value !== undefined) env[key] = value;
-    }
-    return { ...env, ...this.env };
-  }
-
-  readFile(path: string): string {
-    return fs.readFileSync(this.resolve(path), "utf8");
-  }
-
-  writeFile(path: string, content: string): void {
-    const full = this.resolve(path);
-    fs.mkdirSync(nodePath.dirname(full), { recursive: true });
-    fs.writeFileSync(full, content);
-  }
-
-  listFiles(): string[] {
-    return fs.readdirSync(this.cwd);
-  }
-
-  exec(command: string): ExecResult {
-    try {
-      const stdout = execSync(command, {
-        cwd: this.cwd,
-        env: this.execEnv(),
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: 60_000,
-      });
-      return ok(stdout);
-    } catch (e) {
-      const err = e as { stdout?: string; stderr?: string; status?: number };
-      return {
-        stdout: err.stdout ?? "",
-        stderr: err.stderr ?? String((e as Error).message),
-        code: err.status ?? 1,
-      };
-    }
-  }
-}
-
-/**
+ * Instantiates the validated virtual or explicitly enabled local sandbox definition.
  * @param def The sandbox definition to instantiate.
  * @returns A virtual or local sandbox instance.
  */

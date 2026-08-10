@@ -15,6 +15,8 @@ const ENV_RE = /^env\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:,\s*(.*?))?\s*\)$/;
 const NUM_RE = /^-?\d+(?:\.\d+)?$/;
 
 /**
+ * Decodes one NT scalar token with bounded support for nested flow lists.
+ *
  * @param token The raw scalar text (already trimmed of surrounding whitespace).
  * @param loc Source location, propagated to nested flow-list items.
  * @param depth Flow-list nesting depth, capped at `MAX_PARSE_DEPTH` so hostile

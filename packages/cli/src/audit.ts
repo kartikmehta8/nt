@@ -14,6 +14,7 @@ import { bold, cyan, dim, green, out, printWarnings, red, yellow } from "#format
 const DEFAULT_TAIL = 20;
 
 /**
+ * Formats one redacted audit entry as a compact terminal line.
  * @param entry One logged tool call.
  * @returns A single readable line describing the call.
  */
@@ -26,7 +27,9 @@ function formatEntry(entry: AuditEntry): string {
 }
 
 /**
+ * Prints current audit status or tails the selected bounded daily log.
  * @param args The parsed arguments.
+ * @returns Nothing; matching audit entries are written to standard output.
  */
 export function cmdAudit(args: Args): void {
   const { project, warnings } = loadProject(resolveEntry(args), {

@@ -1,0 +1,38 @@
+{
+  "MCP stdio server": {
+    "prefix": "mcp-stdio",
+    "body": [
+      "mcp ${1:name}",
+      "  transport: stdio",
+      "  command: ${2:npx}",
+      "  args: [${3:-y, \"@scope/server@1.0.0\"}]",
+      "  tools:",
+      "    ${4:tool_name}:",
+      "      approval: ${5|required,once,never|}"
+    ]
+  },
+  "MCP bearer HTTP server": {
+    "prefix": "mcp-http-bearer",
+    "body": [
+      "mcp ${1:name}",
+      "  transport: streamable_http",
+      "  url: ${2:https://mcp.example.com/mcp}",
+      "  auth:",
+      "    type: bearer",
+      "    token: env(${3:MCP_TOKEN})",
+      "  tools: [${4:search}]"
+    ]
+  },
+  "MCP OAuth server": {
+    "prefix": "mcp-oauth",
+    "body": [
+      "mcp ${1:name}",
+      "  transport: streamable_http",
+      "  url: ${2:https://mcp.example.com/mcp}",
+      "  auth:",
+      "    type: oauth",
+      "    scopes: [${3:read}]",
+      "  tools: [${4:list_items}]"
+    ]
+  }
+}

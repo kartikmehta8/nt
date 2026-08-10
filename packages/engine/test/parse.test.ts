@@ -1,6 +1,8 @@
 /**
  * @file Parser and lexer regression tests: escape decoding, bracket
- * balancing, prototype-key rejection, and `required: false` coercion.
+ * balancing, prototype-key rejection, and field coercion. The cases preserve
+ * source-level behavior that schema builders depend on, including multiline
+ * scalars, nested collections, comments, and explicit optional fields.
  */
 
 import assert from "node:assert/strict";
@@ -9,6 +11,7 @@ import { splitTopLevel, unquote } from "#parse/lexer";
 import { parseNt } from "#parse/parser";
 import { parseScalar } from "#parse/scalar";
 import { parseFields } from "#schema/coerce";
+import { buildProject } from "#schema/build";
 
 const LOC = { file: "<test>", line: 1 };
 
@@ -95,4 +98,11 @@ test("inline flow-list nesting is capped like container nesting", () => {
   const hostile = "[".repeat(depth) + "]".repeat(depth);
   assert.throws(() => parseScalar(hostile, LOC), /flow list nesting too deep/);
   assert.deepEqual(parseScalar("[[a, b], [c]]", LOC), [["a", "b"], ["c"]]);
+});
+
+test("unknown workflow step fields are reported instead of silently ignored", () => {
+  const file = "<test>";
+  const blocks = parseNt("workflow w\n  steps:\n    - prompt: hi\n      typo: ignored\n", file);
+  const { warnings } = buildProject([{ file, blocks }]);
+  assert.ok(warnings.includes("workflow step: unknown field 'typo' (ignored)"));
 });

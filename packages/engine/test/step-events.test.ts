@@ -99,7 +99,7 @@ test("onStep fires for model calls, tool dispatches, and delegations with depth"
   const context = contextOf(registry, project, (e) => events.push(e));
   await driveConversation(
     context,
-    buildRuntime(context, agentOf(project, "boss")),
+    await buildRuntime(context, agentOf(project, "boss")),
     new VirtualSandbox({ cwd: "/workspace", env: {} }),
     [{ role: "user", content: "go" }],
     0,
@@ -158,7 +158,7 @@ test("a context without onStep drives the loop exactly as before", async () => {
   const context = contextOf(registry, project);
   const turn = await driveConversation(
     context,
-    buildRuntime(context, agentOf(project, "a")),
+    await buildRuntime(context, agentOf(project, "a")),
     new VirtualSandbox({ cwd: "/workspace", env: {} }),
     [{ role: "user", content: "go" }],
     0,

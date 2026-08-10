@@ -24,7 +24,9 @@
     "format": "prettier --write .",
     "test": "node --conditions=development --test \"packages/engine/test/*.test.ts\" \"packages/cli/test/*.test.ts\" && node scripts/test-packed-cli.mjs",
     "typecheck": "pnpm build",
-    "lint": "eslint .",
+    "check:conventions": "node scripts/check-code-conventions.mjs",
+    "check:docs": "node scripts/check-docs-consistency.mjs",
+    "lint": "eslint . && pnpm check:conventions && pnpm check:docs",
     "lint:fix": "eslint . --fix",
     "format:check": "prettier --check .",
     "prepare": "pnpm build && husky"
