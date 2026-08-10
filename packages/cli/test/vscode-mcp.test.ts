@@ -12,6 +12,7 @@ import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as nodePath from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { NtIndex, scanDefinitions } = require("../../vscode-nt/ntIndex.js") as {
@@ -38,7 +39,16 @@ const { LIST_KEYS, listContext } = require("../../vscode-nt/context.js") as {
   ): string | undefined;
 };
 
-const extensionRoot = nodePath.resolve("packages/vscode-nt");
+/**
+ * Absolute path to the sibling VS Code extension fixture.
+ *
+ * Deriving the path from this test module keeps the contract suite independent
+ * of the caller's working directory, including pnpm's package-scoped release job.
+ */
+const extensionRoot = nodePath.resolve(
+  nodePath.dirname(fileURLToPath(import.meta.url)),
+  "../../vscode-nt",
+);
 
 test("VS Code index remains offline while indexing MCP declarations and tool policies", () => {
   const definitions = scanDefinitions(
