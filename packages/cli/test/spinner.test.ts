@@ -126,9 +126,13 @@ test("a status stays visible for the hold time even after a revert is requested"
   handle.stop();
 });
 
-test("reportStep routes engine events to the active indicator", () => {
+test("reportStep routes engine events to the active indicator", (context) => {
   const stream = fakeStream(true);
   const handle = beginThinking(stream, { statusHoldMs: 0 });
+  context.after(() => {
+    setStepReporting(false);
+    handle.stop();
+  });
   setStepReporting(false);
   const before = stream.chunks.length;
   reportStep({ kind: "tool", agent: "age", detail: "current_year", depth: 0 });
@@ -145,7 +149,9 @@ test("reportStep routes engine events to the active indicator", () => {
   reportStep({ kind: "workflow-step", agent: "age", detail: "step 1/2", depth: 0 });
   assert.match(stream.chunks[stream.chunks.length - 1], /Running step 1\/2 \(age\)…/);
   reportStep({ kind: "model", agent: "age", detail: "anthropic/claude-sonnet-5", depth: 0 });
-  assert.doesNotMatch(stream.chunks[stream.chunks.length - 1], /Running|Delegating|Thinking/);
+  const topLevelModelStatus = stream.chunks[stream.chunks.length - 1];
+  assert.doesNotMatch(topLevelModelStatus, /Running|Delegating|researcher ·/);
+  assert.match(topLevelModelStatus, /[A-Z][a-z]+… \(\d+s\)/);
   handle.stop();
   const written = stream.chunks.length;
   reportStep({ kind: "tool", agent: "age", detail: "current_year", depth: 0 });
