@@ -35,7 +35,7 @@ const TEMPLATES: Record<TemplateName, Template> = {
   },
   full: {
     name: "full",
-    description: "A wired ecosystem: sandbox, tool, skill, subagent, and workflow.",
+    description: "A wired ecosystem: sandbox, local and MCP tools, skill, subagent, and workflow.",
     entry: SCAFFOLD_ENTRY_FILE,
     files: FULL_FILES,
   },

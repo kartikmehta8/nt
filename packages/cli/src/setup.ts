@@ -39,8 +39,10 @@ function changeDirectoryTo(dir: string): string | null {
  */
 function printNextSteps(result: ScaffoldResult, project: Project): void {
   const target = changeDirectoryTo(result.dir);
+  const [mcpServer] = project.mcpServers.keys();
   const steps = [
     ...(target ? [`cd ${target}`] : []),
+    ...(mcpServer ? [`nt mcp trust ${mcpServer}`, `nt mcp doctor ${mcpServer}`] : []),
     "export ANTHROPIC_API_KEY=sk-ant-...",
     `nt run ${cyan(entryName(project))} -m "bought the first iPhone at 22"`,
   ];
@@ -68,6 +70,6 @@ export function cmdSetup(args: Args): void {
 
   const { project, warnings } = loadProject(result.entry);
   printWarnings(warnings);
-  out(green(`\n✓ ${project.files.length} file(s) OK`));
+  out(green(`\n✓ ${project.files.length} .nt file(s) OK`));
   printNextSteps(result, project);
 }

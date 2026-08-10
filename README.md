@@ -31,8 +31,10 @@ nt run age -m "bought the first iPhone at 22"
 ```
 
 `nt setup --template full` writes a bigger starter instead: the same agent wired
-to a sandbox, a tool, a skill, a subagent, and a workflow. Existing files are
-never overwritten unless you pass `--force`.
+to a sandbox, a shell tool, a zero-dependency local MCP echo server, a skill, a
+subagent, and a workflow. Existing files are never overwritten unless you pass
+`--force`; the CLI prints the MCP trust and diagnostic commands needed before
+the first run.
 
 ## Example
 

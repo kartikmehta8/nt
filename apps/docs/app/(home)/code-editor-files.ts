@@ -2,10 +2,10 @@
  * @file Static NT source files displayed by the homepage editor preview.
  *
  * Mirrors the canonical multi-file example closely enough to demonstrate
- * imports, providers, agents, sandboxes, tools, skills, and delegation without
- * loading repository files at runtime. Keeping the content separate from the
- * React shell makes drift visible and keeps the component below the repository's
- * file-size convention.
+ * imports, providers, agents, MCP servers, sandboxes, tools, skills, and
+ * delegation without loading repository files at runtime. Keeping the content
+ * separate from the React shell makes drift visible and keeps the component
+ * below the repository's file-size convention.
  */
 
 export interface PreviewFile {
@@ -26,6 +26,7 @@ import ./config.nt
 import ./sandboxes.nt
 import ./skills.nt
 import ./tools.nt
+import ./mcp/history.nt
 import ./subagents/researcher.nt
 
 agent age
@@ -37,12 +38,14 @@ agent age
     - estimation
   tools:
     - current_year
+    - history.search_events
     - fs_write
   subagents:
     - researcher
   instructions: |
     You estimate a person's most likely age from the clues provided.
     Call current_year whenever a clue implies a birth year.
+    Search the trusted history server when a clue names an event.
     Delegate to the researcher to pin down the year of an event.
     Follow the estimation checklist, then commit to one integer.
   input:
@@ -115,6 +118,23 @@ sandbox workspace
   description: In-memory workspace for notes and commands.
   type: virtual
   cwd: /workspace`,
+  },
+  {
+    id: "history",
+    name: "history.nt",
+    folder: "mcp",
+    content: `# A reviewed remote MCP server with one selected tool.
+
+mcp history
+  description: Search a historical timeline for dates and events.
+  transport: streamable_http
+  url: https://mcp.example.com/history
+  auth:
+    type: bearer
+    token: env(HISTORY_MCP_TOKEN)
+  tools:
+    search_events:
+      approval: once`,
   },
   {
     id: "researcher",

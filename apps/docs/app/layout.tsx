@@ -13,7 +13,7 @@ import { RootProvider } from "fumadocs-ui/provider";
 
 const title = "NT — a language for agent ecosystems";
 const description =
-  "NT is a small declarative language (.nt files) and runtime engine. Describe your models, agents, subagents, sandboxes, tools, skills and workflows in one clean format, and one command brings the whole ecosystem up.";
+  "NT is a small declarative language (.nt files) and runtime engine. Describe your models, agents, MCP servers, subagents, sandboxes, tools, skills and workflows in one clean format, and one command brings the whole ecosystem up.";
 
 export const metadata: Metadata = {
   title: {

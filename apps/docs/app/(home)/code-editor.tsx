@@ -9,7 +9,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { FolderIcon, NtFileIcon } from "@/components/logos";
 import { PREVIEW_FILES } from "./code-editor-files";
 import { tokenizePreview } from "./code-editor-tokenize";
@@ -22,6 +22,7 @@ export function CodeEditor() {
   const [active, setActive] = useState(0);
   const file = PREVIEW_FILES[active];
   const lines = tokenizePreview(file.content);
+  const displayPath = file.folder ? `${file.folder}/${file.name}` : file.name;
 
   useEffect(() => {
     const id = setTimeout(() => setActive((current) => (current + 1) % PREVIEW_FILES.length), 5200);
@@ -29,7 +30,7 @@ export function CodeEditor() {
   }, [active]);
 
   const rootFiles = PREVIEW_FILES.filter((candidate) => !candidate.folder);
-  const folderFiles = PREVIEW_FILES.filter((candidate) => candidate.folder);
+  const folders = [...new Set(PREVIEW_FILES.flatMap((candidate) => candidate.folder ?? []))];
 
   return (
     <div className="nt-vscode nt-reveal" data-delay="2">
@@ -39,7 +40,7 @@ export function CodeEditor() {
           <i />
           <i />
         </span>
-        <span className="nt-vscode-titletext">{file.name} — example</span>
+        <span className="nt-vscode-titletext">{displayPath} — example</span>
       </div>
 
       <div className="nt-vscode-body">
@@ -86,19 +87,23 @@ export function CodeEditor() {
               {candidate.name}
             </button>
           ))}
-          <div className="nt-vscode-folder sub">
-            <span className="chev">⌄</span>
-            <FolderIcon size={15} /> subagents
-          </div>
-          {folderFiles.map((candidate) => (
-            <button
-              key={candidate.id}
-              className={`nt-vscode-file sub${candidate.id === file.id ? " on" : ""}`}
-              onClick={() => setActive(PREVIEW_FILES.indexOf(candidate))}
-            >
-              <NtFileIcon size={15} />
-              {candidate.name}
-            </button>
+          {folders.map((folder) => (
+            <Fragment key={folder}>
+              <div className="nt-vscode-folder nested">
+                <span className="chev">⌄</span>
+                <FolderIcon size={15} /> {folder}
+              </div>
+              {PREVIEW_FILES.filter((candidate) => candidate.folder === folder).map((candidate) => (
+                <button
+                  key={candidate.id}
+                  className={`nt-vscode-file nested${candidate.id === file.id ? " on" : ""}`}
+                  onClick={() => setActive(PREVIEW_FILES.indexOf(candidate))}
+                >
+                  <NtFileIcon size={15} />
+                  {candidate.name}
+                </button>
+              ))}
+            </Fragment>
           ))}
         </div>
 

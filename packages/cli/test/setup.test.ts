@@ -46,10 +46,11 @@ test("setup writes the minimal project and prints what to do next", () => {
   assert.match(output, /template: minimal/);
   assert.match(output, /\+ age\.nt/);
   assert.match(output, /\+ config\.nt/);
-  assert.match(output, /✓ 2 file\(s\) OK/);
+  assert.match(output, /✓ 2 \.nt file\(s\) OK/);
   assert.match(output, /Next steps/);
   assert.match(output, /ANTHROPIC_API_KEY/);
   assert.match(output, /nt run age -m/);
+  assert.doesNotMatch(output, /nt mcp (?:trust|doctor)/);
   assert.ok(fs.existsSync(nodePath.join(root, "age.nt")));
 });
 
@@ -57,7 +58,15 @@ test("setup --template full writes every file of the wired example", () => {
   const output = capture(["setup", root, "--template", "full"]);
   assert.match(output, /template: full/);
   assert.match(output, /\+ subagents\/researcher\.nt/);
-  assert.match(output, /✓ 7 file\(s\) OK/);
+  assert.match(output, /\+ mcp\/local\.nt/);
+  assert.match(output, /\+ mcp\/echo-server\.mjs/);
+  assert.match(output, /✓ 8 \.nt file\(s\) OK/);
+  assert.match(output, /nt mcp trust local_demo/);
+  assert.match(output, /nt mcp doctor local_demo/);
+  assert.match(
+    output,
+    /nt mcp trust local_demo[\s\S]*nt mcp doctor local_demo[\s\S]*ANTHROPIC_API_KEY/,
+  );
 });
 
 test("a second setup leaves existing files alone and points at --force", () => {

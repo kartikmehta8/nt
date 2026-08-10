@@ -11,15 +11,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
@@ -124,17 +116,28 @@ try {
   });
   assert.match(help, /^nt — run ecosystems of agents defined in \.nt files/m);
 
-  const fixture = join(root, "packages", "engine", "test", "fixtures", "mcp", "stdio-server.mjs");
-  const projectFile = join(temp, "mcp.nt");
-  writeFileSync(
-    projectFile,
-    `mcp fixture\n  transport: stdio\n  command: ${process.execPath}\n  args: [${fixture}]\n  tools: [echo]\n`,
+  const isolatedHome = join(temp, "home");
+  const mcpEnv = { ...process.env, PATH: path, HOME: isolatedHome, USERPROFILE: isolatedHome };
+  const starter = join(temp, "full-starter");
+  const setupOutput = run(process.execPath, [cliEntry, "setup", starter, "--template", "full"], {
+    cwd: temp,
+    env: mcpEnv,
+  });
+  assert.match(setupOutput, /mcp\/local\.nt/);
+  assert.match(setupOutput, /mcp\/echo-server\.mjs/);
+  assert.match(setupOutput, /nt mcp trust local_demo/);
+  assert.ok(existsSync(join(starter, "mcp", "local.nt")), "full MCP declaration is missing");
+  assert.ok(existsSync(join(starter, "mcp", "echo-server.mjs")), "full MCP server is missing");
+  assert.doesNotMatch(
+    readFileSync(join(starter, "mcp", "echo-server.mjs"), "utf8"),
+    /@modelcontextprotocol\/server/,
   );
+  const projectFile = join(starter, "age.nt");
   const fingerprintFields = {
     transport: "stdio",
-    command: process.execPath,
-    args: [fixture],
-    cwd: realpathSync(temp),
+    command: "node",
+    args: ["./mcp/echo-server.mjs"],
+    cwd: realpathSync(starter),
     env_names: [],
     url: null,
     auth_type: "none",
@@ -143,15 +146,13 @@ try {
     allow_legacy_sse: false,
   };
   const fingerprint = `sha256:${createHash("sha256").update(JSON.stringify(fingerprintFields)).digest("hex")}`;
-  const isolatedHome = join(temp, "home");
-  const mcpEnv = { ...process.env, PATH: path, HOME: isolatedHome, USERPROFILE: isolatedHome };
   run(
     process.execPath,
     [
       cliEntry,
       "mcp",
       "trust",
-      "fixture",
+      "local_demo",
       "--file",
       projectFile,
       "--fingerprint",
@@ -162,7 +163,7 @@ try {
   );
   const listing = run(
     process.execPath,
-    [cliEntry, "mcp", "list", "fixture", "--file", projectFile, "--json"],
+    [cliEntry, "mcp", "list", "local_demo", "--file", projectFile, "--json"],
     { cwd: temp, env: mcpEnv },
   );
   const parsed = JSON.parse(listing);
@@ -172,16 +173,20 @@ try {
   const inspected = JSON.parse(
     run(
       process.execPath,
-      [cliEntry, "mcp", "inspect", "fixture", "echo", "--file", projectFile, "--json"],
+      [cliEntry, "mcp", "inspect", "local_demo", "echo", "--file", projectFile, "--json"],
       { cwd: temp, env: mcpEnv },
     ),
   );
-  assert.equal(inspected.tool.reference, "fixture.echo");
+  assert.equal(inspected.tool.reference, "local_demo.echo");
   const doctor = JSON.parse(
-    run(process.execPath, [cliEntry, "mcp", "doctor", "fixture", "--file", projectFile, "--json"], {
-      cwd: temp,
-      env: mcpEnv,
-    }),
+    run(
+      process.execPath,
+      [cliEntry, "mcp", "doctor", "local_demo", "--file", projectFile, "--json"],
+      {
+        cwd: temp,
+        env: mcpEnv,
+      },
+    ),
   );
   assert.equal(doctor.servers[0].usable, true);
   assert.equal(doctor.servers[0].checks.length, 10);

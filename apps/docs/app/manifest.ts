@@ -16,7 +16,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "NT — a language for agent ecosystems",
     short_name: "NT",
     description:
-      "Describe your models, agents, subagents, sandboxes, tools, skills and workflows in one clean .nt file.",
+      "Describe your models, agents, MCP servers, subagents, sandboxes, tools, skills and workflows in one clean .nt file.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

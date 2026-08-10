@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 NT — a declarative `.nt` language and runtime engine for spinning up ecosystems
-of AI agents, subagents, sandboxes, tools, skills and workflows. GitHub:
+of AI agents, subagents, sandboxes, tools, MCP servers, skills and workflows. GitHub:
 `kartikmehta8/nt`. This is a pnpm monorepo whose development launcher runs
 TypeScript directly (Node ≥ 22.18 strips types natively). Type checking and npm
 packaging compile the engine and CLI to `dist/` with `tsc`.
@@ -97,10 +97,11 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
   Never duplicate these.
 - **`scaffold/` holds the starter projects `nt setup` writes**: `templates.ts`
   registers them (`minimal`, `full`) and rejects unknown names, `minimal.ts` and
-  `full.ts` hold the `.nt` source as data, and `write.ts` creates the folder and
-  writes each file exclusively — an existing file is reported as skipped, never
-  clobbered, unless `force` is set. Templates must load with zero warnings; the
-  scaffold test enforces that.
+  `full.ts` hold the core `.nt` source as data, `full-mcp.ts` holds the full
+  starter's MCP declaration and runnable local server, and `write.ts` creates
+  the folder and writes each file exclusively — an existing file is reported
+  as skipped, never clobbered, unless `force` is set. Templates must load with
+  zero warnings; the scaffold test also invokes the generated MCP tool.
 - **`audit/` writes the tool-call log**: `config.ts` resolves `config.audit`
   (`off` or a folder) into `AuditConfig`, `redact.ts` strips credentials, and
   `log.ts` appends one JSONL line per tool call plus the reader `nt audit` uses.

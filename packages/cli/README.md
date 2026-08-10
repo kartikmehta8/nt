@@ -34,7 +34,7 @@ Let `nt` write a working project for you:
 ```bash
 mkdir my-agent && cd my-agent
 nt setup                 # writes age.nt + config.nt, then checks them
-nt setup --template full # or: a sandbox, tool, skill, subagent and workflow too
+nt setup --template full # or: sandbox, local MCP, tools, skill, helper and workflow
 ```
 
 Existing files are never overwritten — they are reported and left alone unless

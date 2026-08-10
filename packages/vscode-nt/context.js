@@ -9,7 +9,7 @@
  */
 
 const LIST_KEYS = {
-  tools: ["tool", "mcp", "mcp-tool"],
+  tools: ["tool", "mcp-tool"],
   subagents: ["subagent"],
   skills: ["skill"],
   sandbox: ["sandbox"],

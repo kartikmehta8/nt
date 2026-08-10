@@ -70,7 +70,12 @@ test("VS Code indexes flow-list MCP policies and detects inline agent tool compl
     listContext({ lineAt: (index) => ({ text: lines[index] }) }, { line: 1, character: 22 }),
     "tools",
   );
-  assert.deepEqual(LIST_KEYS.tools, ["tool", "mcp", "mcp-tool"]);
+  assert.deepEqual(LIST_KEYS.tools, ["tool", "mcp-tool"]);
+  assert.equal(
+    LIST_KEYS.tools.includes("mcp"),
+    false,
+    "bare MCP server names are not valid agent tool references",
+  );
 });
 
 test("VS Code incrementally replaces and removes MCP workspace symbols", () => {

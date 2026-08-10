@@ -20,6 +20,7 @@ The entry file is the main file NT reads first. It usually does two things:
 import ./config.nt
 import ./tools.nt
 import ./skills.nt
+import ./mcp/local.nt
 import ./subagents/researcher.nt
 
 agent age
@@ -27,6 +28,7 @@ agent age
   model: anthropic/claude-sonnet-5
   tools:
     - current_year
+    - local_demo.echo
   skills:
     - estimation
   subagents:
@@ -61,16 +63,21 @@ few tools and helpers, it is tidier to keep each kind in its own file.
 A common layout looks like this:
 
 ```text
-age.nt          the entry file: imports + the main agent
-config.nt       project settings and the AI provider
-tools.nt        custom tools
-skills.nt       reusable instructions
-subagents/      helper agents
+age.nt                    the entry file: imports + the main agent
+config.nt                 project settings and the AI provider
+sandboxes.nt              the agent's isolated workspace
+skills.nt                 reusable instructions
+tools.nt                  custom shell and HTTP tools
+mcp/local.nt              a selected MCP server and tool policy
+mcp/echo-server.mjs       the starter's local server process
+subagents/researcher.nt   a helper agent
+workflows.nt              a multi-step workflow
 ```
 
 <Callout title="Start from this layout">
-  `nt setup --template full` writes exactly this arrangement, already wired together and ready to
-  run.
+  `nt setup --template full` writes exactly this arrangement and wires it together. Trust and check
+  the generated local server with `nt mcp trust local_demo` and `nt mcp doctor local_demo`; setup
+  prints both commands for you.
 </Callout>
 
 ### import
@@ -81,6 +88,7 @@ with `./` and are relative to the current file.
 ```yaml
 import ./config.nt
 import ./tools.nt
+import ./mcp/local.nt
 import ./subagents/researcher.nt
 ```
 

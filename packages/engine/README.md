@@ -87,12 +87,14 @@ const engine = Engine.load("age.nt", {
 import { scaffoldProject } from "@age.nt/engine";
 
 const result = scaffoldProject("./my-agent", { template: "full" });
-console.log(result.created); // ["age.nt", "config.nt", "sandboxes.nt", …]
+console.log(result.created); // includes mcp/local.nt and its zero-dependency echo server
 console.log(result.skipped); // files that already existed and were left alone
 console.log(result.entry); // absolute path to the entry age.nt
 ```
 
-Nothing is overwritten unless you pass `{ force: true }`.
+The full starter wires `local_demo.echo` into its entry agent. Nothing is
+overwritten unless you pass `{ force: true }`. A caller still needs to persist
+trust for the generated MCP declaration before connecting, just like the CLI.
 
 ### Load and inspect a project (offline, no model calls)
 
