@@ -1,13 +1,17 @@
 ---
 title: Build a workflow
-description: A workflow runs a fixed list of steps in order, passing results from one step to the next.
+description: A workflow runs a list of steps in order, passing results forward — and can fan a step out over a list, skip a step, or retry one that fails.
 ---
 
 <img src="/build-a-workflow.png" alt="Build a workflow" className="nt-banner" />
 
-A **workflow** is a fixed list of steps that run one after another. Each step can
-use the result of the step before it. Use a workflow when you always want the
+A **workflow** is a list of steps that run one after another. Each step can
+use the result of the steps before it. Use a workflow when you always want the
 same sequence to happen, in the same order.
+
+Three optional step settings add control flow without turning the file into a
+program: `for_each` repeats a step for every item in a list, `when` skips a
+step unless a condition holds, and `retry` runs a flaky step again.
 
 ## Make a workflow
 
@@ -41,7 +45,82 @@ In the example above:
    one.
 
 So `{clues}` comes from the workflow's input, and `{year}` comes from the step
-that ran before. This is how a workflow passes results forward.
+that ran before. This is how a workflow passes results forward. When a saved
+value is a list or a structured result, the placeholder shows it as JSON.
+
+## Repeat a step for every item
+
+`for_each` names a list — a workflow input declared as `array`, or an earlier
+step's `into` — and runs the step once per item. Inside the step, `{item}` is
+the current element and `{index}` is its position, counting from zero.
+
+```yaml
+workflow estimate_ages
+  agent: age
+  input:
+    clues: array
+  steps:
+    - agent: researcher
+      for_each: clues
+      prompt: "What year does this clue point to: {item}"
+      into: years
+```
+
+The items run **up to four at a time**, and `into` receives a **list** of the
+results in the same order as the input, however quickly each one finished. An
+empty list makes the step do nothing and saves `[]`. A list longer than 100
+items is refused before anything runs.
+
+Give the workflow a list on the command line:
+
+```bash
+nt run estimate_ages -i '{"clues":["bought the first iPhone at 22","retired last year"]}'
+```
+
+## Skip a step
+
+`when` runs a step only if a condition holds. The condition is checked once,
+before the step, against the values saved so far. A skipped step leaves its
+`into` unset, so a later step can tell that it did not run.
+
+```yaml
+- when: years is not empty
+  prompt: "Estimate an age from these years: {years}"
+  into: estimate
+```
+
+There are exactly six shapes of condition, and no others:
+
+| Condition           | Runs the step when…                                       |
+| ------------------- | --------------------------------------------------------- |
+| `name`              | `name` is set and not blank, empty, `false`, or `0`.      |
+| `not name`          | the opposite.                                             |
+| `name is empty`     | `name` is unset, blank, or an empty list or map.          |
+| `name is not empty` | the opposite.                                             |
+| `name == value`     | `name` rendered as text equals `value` (quotes optional). |
+| `name != value`     | the opposite.                                             |
+
+`name` must be a workflow input or an earlier step's `into` — `nt validate`
+checks this before anything runs.
+
+## Retry a flaky step
+
+`retry` gives a step extra attempts, up to five. An attempt fails when the
+model call errors, or when the step's agent declares `output` and does not
+return a valid structured result. Under `for_each`, each item retries on its
+own. When the budget is spent, the workflow stops with an error that names the
+step.
+
+```yaml
+- when: years is not empty
+  retry: 2
+  prompt: "Estimate an age from these years: {years}"
+  into: estimate
+```
+
+With `retry` set, a missing structured result is treated as a failure even on
+the last attempt. Without it, a step keeps today's forgiving behavior and saves
+the model's plain text instead.
 
 ## What a workflow needs
 
@@ -55,12 +134,28 @@ that ran before. This is how a workflow passes results forward.
 
 Each step can have:
 
-| Step setting | What it does                                        |
-| ------------ | --------------------------------------------------- |
-| `agent`      | Which agent runs this step.                         |
-| `prompt`     | What to ask, with `{names}` filled in from earlier. |
-| `skill`      | An optional skill to add for this step.             |
-| `into`       | A name to save this step's answer under.            |
+| Step setting | What it does                                                   |
+| ------------ | -------------------------------------------------------------- |
+| `agent`      | Which agent runs this step.                                    |
+| `prompt`     | What to ask, with `{names}` filled in from earlier.            |
+| `skill`      | An optional skill to add for this step.                        |
+| `into`       | A name to save this step's answer under.                       |
+| `for_each`   | A list to repeat the step over; `{item}` and `{index}` inside. |
+| `when`       | A condition that must hold for the step to run.                |
+| `retry`      | Extra attempts, 0 to 5, when the step fails.                   |
+
+## See the flow
+
+`nt graph` shows every step with its control flow:
+
+```text
+▶ workflow estimate_ages
+  1. researcher  [for each clues] → years
+  2. age  [when years is not empty · retry 2] → estimate
+```
+
+And `nt run … --show-tool-calls` names each item, skip, and retry on the
+thinking line as it happens.
 
 ## Run a workflow
 
