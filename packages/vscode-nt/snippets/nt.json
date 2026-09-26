@@ -34,5 +34,40 @@
       "    scopes: [${3:read}]",
       "  tools: [${4:list_items}]"
     ]
+  },
+  "Workflow": {
+    "prefix": "workflow",
+    "body": [
+      "workflow ${1:name}",
+      "  description: ${2:What this workflow does.}",
+      "  agent: ${3:agent}",
+      "  input:",
+      "    ${4:message}: ${5|string,array,number,boolean,object|}",
+      "  output:",
+      "    ${6:result}: ${7|object,string,array,number,boolean|}",
+      "  steps:",
+      "    - prompt: \"${8:First step:} {$4}\"",
+      "      into: ${9:first}",
+      "    - prompt: \"${10:Second step:} {$9}\"",
+      "      into: $6"
+    ]
+  },
+  "Workflow step: for each": {
+    "prefix": "workflow-for-each",
+    "body": [
+      "- agent: ${1:agent}",
+      "  for_each: ${2:items}",
+      "  prompt: \"${3:Handle this item:} {item}\"",
+      "  into: ${4:results}"
+    ]
+  },
+  "Workflow step: when and retry": {
+    "prefix": "workflow-when",
+    "body": [
+      "- when: ${1:results} ${2|is not empty,is empty,== value,!= value|}",
+      "  retry: ${3|1,2,3|}",
+      "  prompt: \"${4:Summarize:} {$1}\"",
+      "  into: ${5:summary}"
+    ]
   }
 }

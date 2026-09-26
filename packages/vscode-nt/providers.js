@@ -2,9 +2,10 @@
  * @file VS Code language providers for `.nt` files.
  *
  * Backed by the workspace index: go-to-definition (names and `import` paths),
- * hover (kind, description, location), document symbols (outline), context-aware
- * completion (including statically selected MCP tools), declaration and MCP
- * policy hover, outline, and find-all-references. Provider actions consult only
+ * hover (kind, description, location, and workflow step fields), document
+ * symbols (outline), context-aware completion (including statically selected
+ * MCP tools and workflow step fields), declaration and MCP policy hover,
+ * outline, and find-all-references. Provider actions consult only
  * the bounded workspace index; the extension never starts or connects to an MCP
  * server to obtain dynamic catalog information.
  */
@@ -13,7 +14,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vscode = require("vscode");
 const { scanDefinitions, readBoundedFile, BUILTIN_TOOLS, MAX_SCANNED_FILES } = require("./ntIndex");
-const { LIST_KEYS, listContext } = require("./context");
+const { LIST_KEYS, STEP_FIELDS, listContext, stepKeyContext, stepFieldAt } = require("./context");
+const { stepFieldItems } = require("./stepCompletion");
 
 const WORD_RE = /[A-Za-z0-9_.*/-]+/;
 const DECL_KEYWORDS = [
@@ -107,6 +109,8 @@ function hoverProvider(index) {
       if (!range) return undefined;
       const word = document.getText(range);
       if (isPath(word)) return undefined;
+      if (stepFieldAt(document, position.line) === word)
+        return new vscode.Hover(new vscode.MarkdownString(STEP_FIELDS[word]), range);
       const defs = index.lookup(word);
       if (defs.length) return new vscode.Hover(hoverMarkdown(defs), range);
       if (BUILTIN_TOOLS[word])
@@ -163,11 +167,13 @@ function nameItem(def) {
 /**
  * Creates context-sensitive completions for NT fields and declaration references.
  * @param index The workspace declaration index.
- * @returns A provider that suggests names in list contexts and keywords at column 0.
+ * @returns A provider that suggests names in reference fields, step fields in
+ *   a workflow's `steps:`, and keywords at column 0.
  */
 function completionProvider(index) {
   return {
     provideCompletionItems(document, position) {
+      if (stepKeyContext(document, position)) return stepFieldItems();
       const section = listContext(document, position);
       if (section) {
         const items = index.ofKinds(LIST_KEYS[section]).map(nameItem);
