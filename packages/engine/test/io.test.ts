@@ -23,6 +23,13 @@ test("interpolate substitutes raw values and keeps unknown placeholders", () => 
   assert.equal(interpolate("hi {name}, {missing}", { name: "x" }), "hi x, {missing}");
 });
 
+test("interpolate renders lists and maps as JSON so step results stay readable", () => {
+  assert.equal(
+    interpolate("{list} {map} {n} {b}", { list: ["a", 1], map: { k: "v" }, n: null, b: true }),
+    '["a",1] {"k":"v"} null true',
+  );
+});
+
 test("shellQuote neutralizes single quotes and metacharacters", () => {
   assert.equal(shellQuote("a'b"), "'a'\\''b'");
   assert.equal(shellQuote("x; rm -rf ~"), "'x; rm -rf ~'");

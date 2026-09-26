@@ -2,10 +2,10 @@
  * @file Constants shared across the schema and runtime layers.
  *
  * The single source of truth for the built-in tool names, the delegation tool
- * prefix, the valid thinking
- * levels, the sandbox and token defaults, the agentic-loop and delegation-depth
- * limits, and the audit-log location, file modes, and redaction caps — so these
- * values are never duplicated between the schema, session, audit, and tool
+ * prefix, the valid thinking levels, the sandbox and token defaults, the
+ * agentic-loop, delegation-depth, and workflow control-flow limits, and the
+ * audit-log location, file modes, and redaction caps — so these values are
+ * never duplicated between the schema, session, workflow, audit, and tool
  * modules.
  */
 
@@ -42,6 +42,9 @@ export const DEFAULT_MAX_TOKENS = 8000;
 export const DEFAULT_THINKING: ThinkingLevel = "medium";
 export const MAX_AGENT_STEPS = 12;
 export const MAX_DELEGATION_DEPTH = 6;
+export const MAX_STEP_RETRIES = 5;
+export const MAX_FOR_EACH_ITEMS = 100;
+export const FOR_EACH_CONCURRENCY = 4;
 export const HTTP_TOOL_TIMEOUT_MS = 30_000;
 export const HTTP_TOOL_MAX_BODY_BYTES = 1_000_000;
 export const PROVIDER_TIMEOUT_MS = 120_000;
