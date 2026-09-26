@@ -21,7 +21,7 @@ import type { McpServerDef } from "#types";
  */
 export function createMcpClient(def: McpServerDef, onToolsChanged: () => void): Client {
   return new Client(
-    { name: "nt", version: "0.7.0" },
+    { name: "nt", version: "0.8.0" },
     {
       capabilities: {},
       versionNegotiation: {
