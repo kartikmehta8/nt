@@ -148,7 +148,8 @@ An `.nt` file is made of small, readable blocks:
 - **`skill`** — reusable instructions loaded into an agent's prompt.
 - **`sandbox`** — a safe `virtual` (in-memory) workspace, or a guarded `local`
   one for real host access.
-- **`workflow`** — an ordered pipeline of steps that pass results forward.
+- **`workflow`** — an ordered pipeline of steps that pass results forward,
+  with `for_each` fan-out, `when` conditions, and `retry` per step.
 - **`provider`** — the model backend (`anthropic` or any OpenAI-compatible API).
 - **`config`** — project defaults, the entry to run, and where tool calls are
   audited (`audit: <folder>` or `audit: off`).

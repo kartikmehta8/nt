@@ -3,12 +3,13 @@
  *
  * Each loads a project from the given path without touching the model, then
  * prints what it declares — validation counts, the entity listing including
- * MCP source selections, or agent → subagent/tool/MCP/sandbox wiring — through
- * the format helpers. Dynamic MCP catalogs remain exclusive to `nt mcp` so the
- * editor-like inspection path never starts a process or opens a socket.
+ * MCP source selections, or agent → subagent/tool/MCP/sandbox wiring and each
+ * workflow step's control flow — through the format helpers. Dynamic MCP
+ * catalogs remain exclusive to `nt mcp` so the editor-like inspection path
+ * never starts a process or opens a socket.
  */
 
-import { loadProject, type AgentDef, type Project } from "@age.nt/engine";
+import { loadProject, type AgentDef, type Project, type WorkflowStep } from "@age.nt/engine";
 import { bold, cyan, dim, green, out, printWarnings } from "#format";
 import { resolveEntry, type Args } from "#args";
 
@@ -105,14 +106,30 @@ export function cmdGraph(args: Args): void {
   for (const agent of project.subagents.values()) renderAgent(agent, project);
   for (const workflow of project.workflows.values()) {
     out(bold("▶ workflow " + workflow.name));
-    workflow.steps.forEach((step, i) => {
-      const who = step.agent ?? workflow.agent ?? "(default)";
-      out(
-        `  ${i + 1}. ${cyan(who)}${step.skill ? " +skill:" + step.skill : ""}${step.into ? dim(" → " + step.into) : ""}`,
-      );
-    });
+    workflow.steps.forEach((step, i) => out(`  ${i + 1}. ${describeStep(step, workflow.agent)}`));
     out("");
   }
+}
+
+/**
+ * Describes one workflow step for the graph: who runs it, its control flow, and where its result goes.
+ * @param step The step to render.
+ * @param defaultAgent The workflow's default agent, used when the step names none.
+ * @returns One line naming the agent, skill, `for_each`/`when`/`retry` flow, and `into` target.
+ */
+export function describeStep(step: WorkflowStep, defaultAgent: string | null): string {
+  const who = step.agent ?? defaultAgent ?? "(default)";
+  const flow = [
+    step.forEach ? `for each ${step.forEach}` : null,
+    step.when ? `when ${step.when.source}` : null,
+    step.retry === undefined ? null : `retry ${step.retry}`,
+  ].filter((note) => note !== null);
+  return (
+    cyan(who) +
+    (step.skill ? " +skill:" + step.skill : "") +
+    (flow.length ? dim(`  [${flow.join(" · ")}]`) : "") +
+    (step.into ? dim(" → " + step.into) : "")
+  );
 }
 
 /**
