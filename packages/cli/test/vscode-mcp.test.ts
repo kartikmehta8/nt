@@ -127,7 +127,7 @@ test("VS Code manifest contributes MCP grammar and all secure server snippets", 
   assert.match(grammar.repository.declaration.match, /mcp/);
   assert.deepEqual(
     Object.values(snippets).map((snippet) => snippet.prefix),
-    ["mcp-stdio", "mcp-http-bearer", "mcp-oauth"],
+    ["mcp-stdio", "mcp-http-bearer", "mcp-oauth", "workflow", "workflow-for-each", "workflow-when"],
   );
   assert.match(snippets["MCP bearer HTTP server"].body.join("\n"), /token: env\(/);
   assert.match(snippets["MCP stdio server"].body.join("\n"), /approval:/);

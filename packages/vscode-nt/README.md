@@ -13,7 +13,8 @@ references, across imported files.
 
 **Syntax highlighting** for `import` statements, declaration keywords (`agent`,
 `subagent`, `sandbox`, `tool`, `mcp`, `skill`, `workflow`, `provider`, `config`), entity
-names, field keys, `env(...)`, block scalars, strings, and numbers.
+names, field keys, `env(...)`, block scalars, strings, numbers, `{placeholder}`
+references, and the `when` / `for_each` control flow of workflow steps.
 
 **IntelliSense** (works within a file and across imported files):
 
@@ -24,14 +25,19 @@ names, field keys, `env(...)`, block scalars, strings, and numbers.
   servers show transport and selected MCP policies show approval. Built-in tools
   (`fs_read`, `fs_write`, `fs_list`, `bash`) show a description.
 - **Completion** — inside `tools:` / `subagents:` / `skills:` lists and after
-  `sandbox:`, suggests matching declarations, MCP servers, statically selected
-  MCP tools, and built-in tools. At the start of a line, suggests declaration
+  `sandbox:`, `agent:`, or `skill:`, suggests matching declarations, MCP
+  servers, statically selected MCP tools, and built-in tools. Inside a
+  workflow's `steps:`, suggests every step field — `agent`, `prompt`, `skill`,
+  `into`, `for_each`, `when`, `retry` — with its documentation, and hovering a
+  step field shows the same. At the start of a line, suggests declaration
   keywords.
 - **Outline & breadcrumbs** — every declaration appears in the Outline view and
   the "Go to Symbol" (Ctrl/Cmd-Shift-O) picker.
 - **Find All References** — right-click a name → Find All References.
 - **MCP snippets** — stdio, bearer HTTP, and OAuth declarations. The extension
   stays offline and never connects to or executes an MCP server.
+- **Workflow snippets** — a two-step workflow, a `for_each` fan-out step, and
+  a `when` + `retry` step.
 
 The index refreshes automatically as you edit, save, create, or delete `.nt`
 files, so definitions stay current across the whole workspace.
