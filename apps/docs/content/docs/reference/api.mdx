@@ -317,7 +317,9 @@ skill estimation
 
 ## workflow
 
-A fixed sequence of steps that pass results forward.
+A sequence of steps that pass results forward, with optional per-step control
+flow: `for_each` fans a step out over a list, `when` skips it, `retry` re-runs
+it. See [Build a workflow](/docs/guides/workflows).
 
 | Field         | Type   | Values / default                              |
 | ------------- | ------ | --------------------------------------------- |
@@ -329,12 +331,27 @@ A fixed sequence of steps that pass results forward.
 
 Each entry in `steps` accepts:
 
-| Step field | Type   | Values / default                                                  |
-| ---------- | ------ | ----------------------------------------------------------------- |
-| `prompt`   | string | What to ask. Use `{name}` to insert input or earlier results.     |
-| `agent`    | string | Which agent runs this step. Falls back to the workflow's `agent`. |
-| `skill`    | string | An optional skill to add for this step.                           |
-| `into`     | string | A name to save this step's result under.                          |
+| Step field | Type   | Values / default                                                                                                                                                |
+| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prompt`   | string | What to ask. Use `{name}` to insert input or earlier results; lists and maps render as JSON. Under `for_each`, `{item}` and `{index}` name the current element. |
+| `agent`    | string | Which agent runs this step. Falls back to the workflow's `agent`.                                                                                               |
+| `skill`    | string | An optional skill to add for this step.                                                                                                                         |
+| `into`     | string | A name to save this step's result under. A `for_each` step saves a list.                                                                                        |
+| `for_each` | string | A list to run the step over, once per element, up to 4 in parallel; results keep input order. Must name an `array` input or an earlier `into`. Limit 100 items. |
+| `when`     | string | A condition that must hold for the step to run (see below). Checked once, before the step; a skipped step leaves its `into` unset.                              |
+| `retry`    | number | Extra attempts, `0`–`5`, when the step errors or its agent declares `output` and returns none. Per item under `for_each`. Unset keeps text on a missing result. |
+
+`when` accepts exactly these six forms. `name` must be a workflow input or an
+earlier step's `into`, and `nt validate` enforces that statically:
+
+| Condition           | True when…                                                   |
+| ------------------- | ------------------------------------------------------------ |
+| `name`              | set and not blank, empty, `false`, or `0`.                   |
+| `not name`          | the opposite.                                                |
+| `name is empty`     | unset, blank, or an empty list or map.                       |
+| `name is not empty` | the opposite.                                                |
+| `name == value`     | the value rendered as text equals `value` (quotes optional). |
+| `name != value`     | the opposite.                                                |
 
 ```yaml
 workflow estimate_age
@@ -350,6 +367,23 @@ workflow estimate_age
       into: year
     - prompt: |
         Guess the age. Clues: {clues}. Year: {year}
+      into: estimate
+
+workflow estimate_ages
+  description: Research every clue in parallel, then estimate one age.
+  agent: age
+  input:
+    clues: array
+  output:
+    estimate: object
+  steps:
+    - agent: researcher
+      for_each: clues
+      prompt: "What year does this point to: {item}"
+      into: years
+    - when: years is not empty
+      retry: 2
+      prompt: "Estimate the age. Clues: {clues}. Years: {years}"
       into: estimate
 ```
 
@@ -384,6 +418,9 @@ Handy values built into the engine:
 | Audit file name         | `tools-YYYY-MM-DD.jsonl` |
 | Max steps per agent run | `12`                     |
 | Max delegation depth    | `6`                      |
+| Max `retry` per step    | `5`                      |
+| Max `for_each` items    | `100`                    |
+| Parallel `for_each`     | `4` at a time            |
 | HTTP tool timeout       | 30 seconds               |
 
 ---
