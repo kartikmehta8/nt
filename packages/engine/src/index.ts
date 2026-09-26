@@ -56,6 +56,8 @@ export type {
   ThinkingLevel,
   ToolDef,
   TokenUsage,
+  WorkflowCondition,
+  WorkflowConditionOp,
   WorkflowDef,
   WorkflowStep,
 } from "#types";

@@ -3,7 +3,8 @@
  *
  * The same `age` agent as the minimal template, wired to one of every capability
  * the language offers — a sandbox, shell and MCP tools, a skill, a subagent,
- * and a workflow — each in its own file so the layout scales. It validates
+ * and two workflows (a pipeline and a for_each/when/retry fan-out) — each in
+ * its own file so the layout scales. It validates
  * with no warnings and extends the repository's example with runnable MCP.
  */
 
@@ -130,9 +131,11 @@ subagent researcher
     occurred, or a tight range, and nothing else.
 `;
 
-const WORKFLOWS_NT = `# A two-step workflow: pin down the year behind a clue, then estimate the age.
+const WORKFLOWS_NT = `# Two workflows: a two-step pipeline, and a fan-out that uses every control-flow field.
 #
-# Run it with:  nt run estimate_age -i '{"clues":"bought the first iPhone at 22"}'
+# Run them with:
+#   nt run estimate_age -i '{"clues":"bought the first iPhone at 22"}'
+#   nt run estimate_ages -i '{"clues":["bought the first iPhone at 22","retired last year"]}'
 
 workflow estimate_age
   description: Research the year a clue refers to, then estimate an age from it.
@@ -149,6 +152,31 @@ workflow estimate_age
         Estimate the person's most likely age.
         Clues: {clues}
         Relevant year: {year}
+      into: estimate
+
+# Research every clue in parallel, then estimate one age from all of them.
+workflow estimate_ages
+  description: Research every clue in parallel, then estimate one age from all of them.
+  agent: age
+  input:
+    clues: array
+  output:
+    estimate: object
+  steps:
+    # for_each runs this step once per clue, up to four at a time, and saves
+    # the results in \`years\` as a list in the same order as \`clues\`.
+    - agent: researcher
+      for_each: clues
+      prompt: "What calendar year does this clue point to: {item}"
+      into: years
+    # when skips the step unless the condition holds; retry re-runs it when
+    # the agent errors or returns no structured output.
+    - when: years is not empty
+      retry: 2
+      prompt: |
+        Estimate the person's most likely age.
+        Clues: {clues}
+        Years the clues point to: {years}
       into: estimate
 `;
 

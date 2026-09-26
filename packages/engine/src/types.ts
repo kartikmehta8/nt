@@ -4,7 +4,8 @@
  * Declares the parsed value model (`NtValue`, `EnvRef`), the raw `Block` a file
  * parses into, and the typed definitions the schema layer produces (`AgentDef`
  * — used for both agents and subagents, `SandboxDef`, `ToolDef`, `SkillDef`,
- * `WorkflowDef`, `ProviderDef`, `ConfigDef`, `AuditConfig`), plus the assembled
+ * `WorkflowDef` with its `WorkflowStep` control flow and `WorkflowCondition`,
+ * `ProviderDef`, `ConfigDef`, `AuditConfig`), plus the assembled
  * `Project`, the `RunResult` / `TokenUsage` shapes the engine returns, and the
  * `ScaffoldFile` a starter template is made of. MCP definitions and inspection
  * results are re-exported from `mcp/public-types.ts` to keep this core model
@@ -118,11 +119,24 @@ export interface AgentDef {
   loc: Location;
 }
 
+export type WorkflowConditionOp =
+  "truthy" | "falsy" | "empty" | "not_empty" | "equals" | "not_equals";
+
+export interface WorkflowCondition {
+  variable: string;
+  op: WorkflowConditionOp;
+  value?: string;
+  source: string;
+}
+
 export interface WorkflowStep {
   prompt?: string;
   agent?: string;
   skill?: string;
   into?: string;
+  forEach?: string;
+  when?: WorkflowCondition;
+  retry?: number;
 }
 
 export interface WorkflowDef {

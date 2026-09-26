@@ -4,11 +4,12 @@
  * Converts declared `FieldSpec[]` into the JSON schema sent to the model
  * (`buildInputSchema` for tools, `buildOutputSchema` for structured agent
  * output) and fills `{name}` placeholders in prompts and tool commands.
- * `interpolate` substitutes raw values for prompts; `interpolateShell` and
- * `interpolateUrl` escape model-supplied values so they cannot inject shell
- * syntax or URL structure. `validateInput` checks supplied arguments against
- * declared fields. `extractJson`/`conformsToOutputSchema` recover and check
- * structured agent output.
+ * `interpolate` substitutes values for prompts, rendering lists and maps as
+ * JSON through `renderValue`; `interpolateShell` and `interpolateUrl` escape
+ * model-supplied values so they cannot inject shell syntax or URL structure.
+ * `validateInput` checks supplied arguments against declared fields.
+ * `extractJson`/`conformsToOutputSchema` recover and check structured agent
+ * output.
  */
 
 import type { FieldSpec, FieldType } from "#types";
@@ -107,6 +108,16 @@ export function validateInput(fields: FieldSpec[], input: Record<string, unknown
 }
 
 /**
+ * Renders a workflow or run value the way a prompt placeholder shows it.
+ * @param value Any variable value: a scalar, a list, or a structured result.
+ * @returns Scalars as text, and lists or maps as compact JSON.
+ */
+export function renderValue(value: unknown): string {
+  if (typeof value === "object" && value !== null) return JSON.stringify(value);
+  return String(value);
+}
+
+/**
  * Returns the template with known placeholders replaced.
  * @param template A string containing `{name}` placeholders.
  * @param vars Values to substitute; unknown placeholders are left intact.
@@ -114,7 +125,7 @@ export function validateInput(fields: FieldSpec[], input: Record<string, unknown
  */
 export function interpolate(template: string, vars: Record<string, unknown>): string {
   return template.replace(/\{(\w+)\}/g, (_m, key) =>
-    key in vars ? String(vars[key]) : `{${key}}`,
+    key in vars ? renderValue(vars[key]) : `{${key}}`,
   );
 }
 

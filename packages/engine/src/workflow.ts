@@ -1,19 +1,21 @@
 /**
  * @file Sequential workflow execution over an isolated variable map.
  *
- * Seeds only declared inputs, resolves each step's agent and optional skill,
- * interpolates the step prompt, runs the shared session loop, and copies only
- * declared `into` outputs forward. It aggregates steps and token usage while
- * receiving engine-owned provider, MCP, audit, sandbox, and progress services
- * through `WorkflowRuntime`.
+ * Seeds only declared inputs, walks the steps in order, and applies each
+ * step's control flow: a `when` condition is evaluated once and skips the
+ * step (leaving its `into` unset) when false, `for_each` fans the step out
+ * over a list, and `retry` re-runs failed attempts — all through
+ * `workflow-step.ts`. Only declared `into` results are copied forward, and
+ * steps and token usage are aggregated while engine-owned provider, MCP,
+ * audit, sandbox, and progress services arrive through `WorkflowRuntime`.
  */
 
 import { NtError } from "#errors";
-import { interpolate } from "#io";
-import { buildUserMessage, type RunContext } from "#runtime";
+import type { RunContext } from "#runtime";
 import type { Sandbox } from "#sandbox";
-import { runSession } from "#session";
 import type { AgentDef, FieldSpec, Project, RunResult, WorkflowDef } from "#types";
+import { evaluateCondition } from "#workflow-condition";
+import { runForEach, runStep, type StepRun } from "#workflow-step";
 
 export interface WorkflowRuntime {
   project: Project;
@@ -42,26 +44,25 @@ export async function executeWorkflow(
   let lastText = "";
   for (const [index, step] of workflow.steps.entries()) {
     const agent = resolveAgent(runtime.project, name, step.agent ?? workflow.agent);
-    runtime.onStep?.({
-      kind: "workflow-step",
-      agent: agent.name,
-      detail: `step ${index + 1}/${workflow.steps.length}`,
-      depth: 0,
-    });
-    const base = step.prompt ? interpolate(step.prompt, vars) : buildUserMessage(agent, vars);
-    const prompt = step.skill ? applySkill(runtime.project, step.skill, base) : base;
-    const result = await runSession(
-      runtime.context,
-      agent,
-      { message: prompt },
-      runtime.makeSandbox(agent),
-      0,
-    );
-    usage.input += result.usage.input;
-    usage.output += result.usage.output;
-    steps += result.steps;
-    lastText = result.text;
-    if (step.into) vars[step.into] = result.output ?? result.text;
+    const label = `step ${index + 1}/${workflow.steps.length}`;
+    const run: StepRun = { workflow: name, label, step, agent, loc: workflow.loc, runtime };
+    if (step.when && !evaluateCondition(step.when, vars)) {
+      runtime.onStep?.({
+        kind: "workflow-step",
+        agent: agent.name,
+        detail: `${label} skipped (when ${step.when.source})`,
+        depth: 0,
+      });
+      continue;
+    }
+    if (!step.forEach)
+      runtime.onStep?.({ kind: "workflow-step", agent: agent.name, detail: label, depth: 0 });
+    const outcome = step.forEach ? await runForEach(run, vars) : await runStep(run, vars);
+    usage.input += outcome.usage.input;
+    usage.output += outcome.usage.output;
+    steps += outcome.steps;
+    lastText = outcome.text;
+    if (step.into) vars[step.into] = outcome.value;
   }
   return {
     text: lastText,
@@ -88,12 +89,6 @@ function resolveAgent(project: Project, workflow: string, agentName: string | nu
   if (!agent)
     throw new NtError(`workflow '${workflow}' references unknown agent '${agentName}'`, null);
   return agent;
-}
-
-function applySkill(project: Project, skillName: string, prompt: string): string {
-  const skill = project.skills.get(skillName);
-  if (!skill) throw new NtError(`unknown skill '${skillName}'`, null);
-  return `Apply the '${skill.name}' skill:\n${skill.instructions}\n\n${prompt}`;
 }
 
 function collectOutput(

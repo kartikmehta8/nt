@@ -4,7 +4,8 @@
  * Treats package manifests, the MCP declaration schema, public CLI parser, and
  * exported field-type vocabulary as sources of truth. It rejects stale build or
  * dependency claims and ensures user-facing references contain every runtime
- * dependency, MCP field, long CLI option, and supported data type. The check is
+ * dependency, MCP field, workflow step field and `when` form, long CLI option,
+ * and supported data type. The check is
  * intentionally deterministic and offline so it can run as part of `pnpm lint`.
  */
 
@@ -129,6 +130,17 @@ for (const file of currentDocs)
 const apiReference = "apps/docs/content/docs/reference/api.mdx";
 for (const field of sourceArray("packages/engine/src/schema/mcp.ts", "MCP_FIELDS"))
   requireText(apiReference, [`| \`${field}\``]);
+const workflowGuide = "apps/docs/content/docs/guides/workflows.mdx";
+const stepFields = sourceArray(
+  "packages/engine/src/schema/workflow-declaration.ts",
+  "STEP_FIELDS",
+).map((field) => `| \`${field}\``);
+const conditionForms = sourceArray(
+  "packages/engine/src/workflow-condition.ts",
+  "CONDITION_FORMS",
+).map((form) => `| \`${form}\``);
+requireText(apiReference, [...stepFields, ...conditionForms]);
+requireText(workflowGuide, [...stepFields, ...conditionForms]);
 
 const typeMatch = read("packages/engine/src/types.ts").match(/export type FieldType = ([^;]+);/);
 if (!typeMatch) fail("packages/engine/src/types.ts FieldType union could not be read");

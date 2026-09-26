@@ -58,6 +58,10 @@ test("the full template wires up one of every capability", () => {
   assert.ok(project.skills.has("estimation"));
   assert.ok(project.sandboxes.has("workspace"));
   assert.ok(project.workflows.has("estimate_age"));
+  const batch = project.workflows.get("estimate_ages");
+  assert.equal(batch?.steps[0]?.forEach, "clues", "full template fans out with for_each");
+  assert.equal(batch?.steps[1]?.when?.source, "years is not empty", "and gates with when");
+  assert.equal(batch?.steps[1]?.retry, 2, "and retries the estimate");
   assert.ok(project.mcpServers.has("local_demo"));
   assert.ok(project.agents.get("age")?.tools.includes("local_demo.echo"));
   assert.ok(fs.existsSync(nodePath.join(root, "subagents", "researcher.nt")), "nested dirs made");

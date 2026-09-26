@@ -47,6 +47,11 @@ const result = await engine.runWorkflow("estimate_age", {
 });
 ```
 
+Workflow steps can fan out over a list with `for_each` (bounded parallelism,
+results in input order), skip themselves with a fixed-vocabulary `when`
+condition, and re-run on failure with `retry` — all validated statically
+before a model is called.
+
 ### Watch progress
 
 Pass `onStep` to observe every model call, tool dispatch, subagent delegation,

@@ -89,11 +89,14 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
   `Project`, validating references and collecting warnings) → bring up
   (`status.ts`: instantiate sandboxes, check provider credentials, report the
   audit destination) → run (`runtime.ts` resolves the per-run context, model and
-  prompt; `session.ts` drives the agentic tool-use loop plus delegation).
+  prompt; `session.ts` drives the agentic tool-use loop plus delegation;
+  `workflow.ts` walks steps and `workflow-step.ts` applies `for_each` fan-out,
+  `retry`, and the six-form `when` predicate from `workflow-condition.ts`).
 - **`constants.ts` is the single source of truth** for built-in tool names
   (`fs_read`, `fs_write`, `fs_list`, `bash`), thinking levels, and the
   defaults/limits (`DEFAULT_MAX_TOKENS`, `MAX_AGENT_STEPS` = 12,
-  `MAX_DELEGATION_DEPTH` = 6, `HTTP_TOOL_TIMEOUT_MS`, `DEFAULT_AUDIT_DIR`, …).
+  `MAX_DELEGATION_DEPTH` = 6, `MAX_STEP_RETRIES` = 5, `MAX_FOR_EACH_ITEMS` = 100,
+  `FOR_EACH_CONCURRENCY` = 4, `HTTP_TOOL_TIMEOUT_MS`, `DEFAULT_AUDIT_DIR`, …).
   Never duplicate these.
 - **`scaffold/` holds the starter projects `nt setup` writes**: `templates.ts`
   registers them (`minimal`, `full`) and rejects unknown names, `minimal.ts` and
@@ -171,9 +174,10 @@ all pass with zero errors AND zero warnings, and `pnpm test` is green.
 ### Example (example/)
 
 - The reference ecosystem: an `age` agent wired to a `researcher` subagent, a
-  `current_year` tool, an `estimation` skill, a `workspace` sandbox, and an
-  `estimate_age` workflow — each in its own file, imported by `age.nt`. The root
-  `nt:*` scripts target it; keep it working as the living smoke test.
+  `current_year` tool, an `estimation` skill, a `workspace` sandbox, an
+  `estimate_age` workflow, and an `estimate_ages` workflow that exercises
+  `for_each`, `when`, and `retry` — each in its own file, imported by `age.nt`.
+  The root `nt:*` scripts target it; keep it working as the living smoke test.
 
 ## Testing
 
