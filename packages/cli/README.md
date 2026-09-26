@@ -16,7 +16,7 @@ language model — no glue code.
 npm install -g @age.nt/nt
 ```
 
-Requires **Node ≥ 22.18**. Published packages contain compiled JavaScript. To
+Requires **Node ≥ 22.19**. Published packages contain compiled JavaScript. To
 actually run an agent, set a provider key:
 
 ```bash

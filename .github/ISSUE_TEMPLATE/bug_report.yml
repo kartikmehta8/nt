@@ -32,6 +32,6 @@ body:
     attributes:
       label: Environment
       description: Node version, OS, and NT/CLI version.
-      placeholder: "node 22.18.0, macOS 15, nt 0.1.0"
+      placeholder: "node 22.19.0, macOS 15, nt 0.1.0"
     validations:
       required: true

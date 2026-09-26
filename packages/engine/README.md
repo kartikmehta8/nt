@@ -18,7 +18,7 @@ for this package directly when you want to **embed NT in your own app**.
 npm install @age.nt/engine
 ```
 
-Requires **Node ≥ 22.18**. Published packages contain compiled JavaScript. The
+Requires **Node ≥ 22.19**. Published packages contain compiled JavaScript. The
 engine uses the official MCP TypeScript client, Ajv, and Undici at runtime, and
 reaches model providers over `fetch`.
 

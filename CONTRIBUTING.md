@@ -11,7 +11,7 @@ published packages and one documentation application:
 | `apps/docs`          | private          | Fumadocs + Next.js documentation site            |
 
 Development commands run TypeScript directly through Node's native type
-stripping, which is why Node **>= 22.18.0** is required. Published engine and
+stripping, which is why Node **>= 22.19.0** is required. Published engine and
 CLI packages are compiled to `dist/` with `tsc`; `pnpm typecheck` performs that
 production build rather than a no-emit check.
 
