@@ -5,7 +5,7 @@
   "private": true,
   "license": "MIT",
   "engines": {
-    "node": ">=22.18.0"
+    "node": ">=22.19.0"
   },
   "packageManager": "pnpm@9.15.0",
   "scripts": {
@@ -56,17 +56,14 @@
     "overrides": {
       "@orama/orama": "3.1.14",
       "brace-expansion@>=4.0.0 <5.0.9": ">=5.0.9",
-      "fast-uri@>=3.0.0 <3.1.5": ">=3.1.5",
+      "fast-uri@>=3.0.0 <3.1.6": "^3.1.6",
+      "fast-uri@>=4.0.0 <4.1.3": "^4.1.3",
+      "image-size@<2.0.3": "^2.0.3",
       "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1",
       "nanoid@<3.3.17": ">=3.3.18",
       "postcss@<8.5.18": ">=8.5.18",
-      "sharp@<0.35.0": ">=0.35.0"
-    },
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-5p2g-fcmc-qvqq",
-        "GHSA-w3rx-r6r6-pgpr"
-      ]
+      "qs@<6.16.0": "^6.16.0",
+      "sharp@<0.35.4": ">=0.35.4"
     }
   }
 }

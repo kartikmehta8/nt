@@ -96,7 +96,7 @@ for (const [file, manifest] of [
   ["packages/engine/package.json", enginePackage],
   ["packages/cli/package.json", cliPackage],
 ])
-  if (manifest.engines?.node !== ">=22.18.0") fail(`${file} must require Node >=22.18.0`);
+  if (manifest.engines?.node !== ">=22.19.0") fail(`${file} must require Node >=22.19.0`);
 
 requireText("README.md", ["MCP client", "Ajv", "Undici"]);
 for (const file of ["packages/engine/README.md", "CLAUDE.md"])

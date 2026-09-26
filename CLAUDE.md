@@ -3,7 +3,7 @@
 NT — a declarative `.nt` language and runtime engine for spinning up ecosystems
 of AI agents, subagents, sandboxes, tools, MCP servers, skills and workflows. GitHub:
 `kartikmehta8/nt`. This is a pnpm monorepo whose development launcher runs
-TypeScript directly (Node ≥ 22.18 strips types natively). Type checking and npm
+TypeScript directly (Node ≥ 22.19 strips types natively). Type checking and npm
 packaging compile the engine and CLI to `dist/` with `tsc`.
 
 - `packages/engine` — the language + runtime, as a library (`@age.nt/engine`)

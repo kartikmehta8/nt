@@ -7,7 +7,7 @@ in one clean file, and one command brings the whole ecosystem up.
 ## Install
 
 ```bash
-npm install -g @age.nt/nt        # the nt CLI — needs Node >= 22.18
+npm install -g @age.nt/nt        # the nt CLI — needs Node >= 22.19
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
